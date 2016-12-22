@@ -6,9 +6,15 @@ import android.os.Bundle;
 import android.util.Log;
 
 /*
+ * DON'T do heavy work in CALLBACKS (~3 threads in pool )
+ */
+
+/*
  * * Dec 22, 2016
  * * created project
  * created controller and RobotNexus view
+ * created Robot object that the model will contain an array list of
+ *
  *
  */
 
