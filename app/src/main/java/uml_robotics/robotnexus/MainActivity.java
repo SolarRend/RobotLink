@@ -7,6 +7,7 @@ import android.util.Log;
 
 /*
  * DON'T do heavy work in CALLBACKS (~3 threads in pool )
+ * Figure out a way for
  */
 
 /*
@@ -14,7 +15,7 @@ import android.util.Log;
  * * created project
  * created controller and RobotNexus view
  * created Robot object that the model will contain an array list of
- *
+ * finished onstartcommand stuff in controllerservice
  *
  */
 
