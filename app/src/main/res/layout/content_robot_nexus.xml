@@ -13,4 +13,18 @@
     tools:context="uml_robotics.robotnexus.RobotNexus"
     tools:showIn="@layout/activity_robot_nexus">
 
+    <ListView
+        android:layout_width="wrap_content"
+        android:id="@+id/robot_list"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="111dp"
+        android:layout_height="250dp" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="175dp"
+        android:layout_height="175dp"
+        android:layout_below="@+id/robot_list"
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>

@@ -5,14 +5,26 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Base64;
 import android.util.Log;
 
+import org.json.JSONObject;
+
+import java.io.FileOutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,12 +38,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import static java.lang.Thread.sleep;
 
 public class ControllerService extends Service {
+    // action name to extract the jpeg from strJSON
+    protected static final String DESERIALIZE_JPEG = "uml_robotics.robotlink.deserialize_jpeg";
     private ServiceLooper serviceLooper; //looper to maintain a service thread
     private Handler serviceHandler; // handler for posting to looper
     private static ArrayList<Robot> theModel; // the model of the system -> only manipulate through its methods
     private static ReentrantLock theModelLock; // keeps mutual exclusion of model tampering
     private ArrayList<Robot> model; // controller's copy of the model
-    private ReentrantLock modelLock; // mutex for tampering with copt of the model
+    private ReentrantLock modelLock; // mutex for tampering with copy of the model
     private Boolean btInitOff = false; //used for checking initial state of user's bluetooth
     private BluetoothAdapter btAdapter;  //Adapter used for most bluetoothy stuff
     // callback that triggers when le devices are found by startLeScan()
@@ -47,7 +61,8 @@ public class ControllerService extends Service {
     // holds bluetooth devices identified as robots
     private HashMap<BluetoothDevice, Integer> robotsAsBTDevices;
     private HashMap<Integer, String> packetsFound = null; // map multi packet reads
-    // blocks makeRobot() from finishing until descriptor has been written - **Hack-Fix**
+    // used in makeRobot() for reading characteristics and
+    // stopping from finishing until descriptor has been written (because image sends after read request)
     private BlockingQueue<Integer> makeRobotBlock = null;
     // lock for sequencing statusReview and handleJPEG()
     private ReentrantLock transferLock;
@@ -55,13 +70,31 @@ public class ControllerService extends Service {
     //private ArrayList<ScanCallbackPackage> scanCallbackPackages;
     // boolean for stating if we're connected to a robot or not
     private boolean isConnected = false;
+    private BluetoothGatt currConnectedDevice = null; //current device we are connected to
+    // used for determining when server has stopped notifying
+    private TransferStatusReview statusReview = null;
+    // time stamp updated on each onCharacteristicChanged callback
+    private long notifyTimeStamp;
+    private String strJSON = null; // contains JSON string for a JPEG file
+    // boolean to let others know if TransferStatusReview is on or not
+    private boolean statusReviewOff = true;
+    private boolean awaitingMissedPackets = false; //used to know if we should expect a missing packet
+    private BroadcastReceiver receiver; // listens for dismiss, deserialize
+    /*
+     * characteristics/values of our currently connected robot
+     */
+    private int totalNumOfPackets;
+    private BluetoothGattCharacteristic missingPacketWrite = null;
+    /*
+     * end fields for currently connected robot
+     */
 
     public ControllerService() {
     }
 
     @Override
     public void onCreate() {
-        final String TAG = "Service.onCreate()";
+        final String TAG = "Controller.onCreate()";
         Log.i(TAG, "Service created");
 
         // create the service thread
@@ -103,15 +136,15 @@ public class ControllerService extends Service {
 
                 //Populating supportedServices and supportedCharas maps
                 supportedServices = new HashMap<String, String>();
-                supportedServices.put("00001800-0000-1000-8000-00805f9b34fb", "Generic Access");
-                supportedServices.put("00001801-0000-1000-8000-00805f9b34fb", "Generic Attribute");
+                //supportedServices.put("00001800-0000-1000-8000-00805f9b34fb", "Generic Access");
+                //supportedServices.put("00001801-0000-1000-8000-00805f9b34fb", "Generic Attribute");
                 supportedServices.put("00001800-30de-4630-9b59-27228d45bf11", "Image Receive");
                 supportedServices.put("00001801-30de-4630-9b59-27228d45bf11", "Image Send");
 
                 supportedCharas = new HashMap<String, String>();
-                supportedCharas.put("00002a00-0000-1000-8000-00805f9b34fb", "Device Name");
-                supportedCharas.put("00002a01-0000-1000-8000-00805f9b34fb", "Appearance");
-                supportedCharas.put("00002a05-0000-1000-8000-00805f9b34fb", "Service Changed");
+                //supportedCharas.put("00002a00-0000-1000-8000-00805f9b34fb", "Device Name");
+                //supportedCharas.put("00002a01-0000-1000-8000-00805f9b34fb", "Appearance");
+                //supportedCharas.put("00002a05-0000-1000-8000-00805f9b34fb", "Service Changed");
                 supportedCharas.put("00002a10-30de-4630-9b59-27228d45bf11", "Packet Read");
                 supportedCharas.put("00002a11-30de-4630-9b59-27228d45bf11", "Missing Packet Write");
                 supportedCharas.put("00002a12-30de-4630-9b59-27228d45bf11", "Packet Write");
@@ -137,6 +170,9 @@ public class ControllerService extends Service {
                 // getting copy of model
                 model = getModel();
 
+                //creating lock for when controller is accessing its own copy of the model
+                modelLock = new ReentrantLock();
+
                 // create job queue for scan callbacks
                 //scanCallbackPackages = new ArrayList<ScanCallbackPackage>();
 
@@ -144,7 +180,7 @@ public class ControllerService extends Service {
                 leCallback = new BluetoothAdapter.LeScanCallback() {
 
                     @Override
-                    public synchronized void onLeScan(final BluetoothDevice device, final int rssi,
+                    public void onLeScan(final BluetoothDevice device, final int rssi,
                                                       final byte[] scanRecord) {
 
                         //Log.i("leCallback", "Start");
@@ -161,6 +197,258 @@ public class ControllerService extends Service {
                         });
                     }
                 };
+
+                btGattCallback = new BluetoothGattCallback() {
+                    @Override
+                    public void onConnectionStateChange(final BluetoothGatt gatt,final int status, final int newState) {
+
+                        serviceHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                                    if (status == BluetoothGatt.GATT_SUCCESS) {
+
+                                        Log.i("onConnect", "Connected to " + (gatt.getDevice()).getName());
+                                        currConnectedDevice = gatt;
+                                        gatt.discoverServices();
+
+                                    } else {
+                                        Log.i("onConnect", "Failed connection with status = " + status);
+                                    }
+                                }
+
+                                if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                                    if (status == BluetoothGatt.GATT_SUCCESS || status == 19) {
+                                        // status is only 19 on lollipop with Vanir (so far) when disconnect is
+                                        // from server side
+                                        //testTotal = 0;
+                                        //Log.i("onDisconnect", "Disconnected with status " + status);
+                                        Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
+
+                                        currConnectedDevice = null;
+                                        isConnected = false;
+
+                                        //tell RobotInfo to end
+                                        //sendBroadcast(new Intent().setAction(FINISH));
+
+                                        // end transfer review if we disconnected during transfer process
+                                        if (!statusReviewOff) {
+                                            statusReview.close();
+                                            statusReview = null;
+                                        }
+
+                                        //**DEMO** end tracking of robot proximity
+                                        //tracker.close();
+                                        //tracker = null;
+
+                                        //DeviceUtilities.clear();
+                                        //arAdapter.clear();
+                                        //robot.clean();
+                                        //DeviceUtilities.robot = null;
+                                        strJSON = null;
+
+                                        //safety-net
+                                        //if (notifManager != null) {
+                                        //notifManager.cancelAll();
+                                        //}
+
+                                        // safety-net
+                                        if (btAdapter != null) {
+                                            //starting scan on service thread
+                                            btAdapter.startLeScan(leCallback);
+                                            isScanning = true;
+
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
+
+                        serviceHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                if (status == BluetoothGatt.GATT_SUCCESS) {
+
+                                    // have to run in separate thread because makeRobot is a blocking call
+                                    new Thread(new Runnable() {
+                                        @Override
+                                        public void run() {
+
+                                            makeRobot(gatt);
+                                            /*
+                                            DeviceUtilities.robot = robot;
+                                            if (MainActivity.isOnMain) {
+                                                //main thread
+                                                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        //start a new activity to handle conveying info about robot to user
+                                                        startActivity(new Intent(LinkService.this, RobotInfo.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                                                    }
+                                                });
+
+                                            } else {
+
+                                                //sending notification that also directs to RobotInfo activity
+                                                Log.i("onServicesDiscovered()", "Sending notification");
+                                                pullNotificationOn();
+                                            }
+                                            // **DEMO** starting proximity tracking
+                                            //tracker = new TrackRobotProximity();
+                                            //tracker.start();
+                                            */
+                                        }
+                                    }).start();
+                                }
+                            }
+                        });
+
+                    }
+
+
+                    @Override
+                    public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+
+
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            //finished reading so add our characteristic to the blocking queue
+                            makeRobotBlock.add(1);
+                            //Log.i("onCharacteristicRead", "finished reading");
+                        } else if (status == BluetoothGatt.GATT_FAILURE) {
+                            Log.e("onCharacteristicRead", "Reading failed");
+                        }
+                    }
+
+                    @Override
+                    public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            // **DEMO** update rssi list for taking averages
+                            //if (tracker != null) {
+                                //tracker.updateRssiList(rssi);
+                           // }
+                        }
+                    }
+
+
+                    @Override
+                    public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor,
+                                                  int status) {
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            Log.i("onDescriptorWrite", "Successfully Written");
+                            // blocking queue add for packet read characteristic
+                            makeRobotBlock.add(1);
+                        }
+                    }
+
+
+                    @Override
+                    public void onCharacteristicChanged(BluetoothGatt gatt,
+                                                        final BluetoothGattCharacteristic characteristic) {
+                        Log.i("onCharaChange", "Successfully notified");
+
+
+                        serviceHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+
+                                // handle new value in characteristic
+
+                                // update time stamp
+                                notifyTimeStamp = System.currentTimeMillis();
+
+                                // take lock - assuming this characteristic is sending jpeg data
+                                transferLock.lock();
+
+                                // check if our transfer review is off
+                                if (statusReviewOff) {
+                                    // turn it on
+                                    statusReview = new TransferStatusReview(characteristic);
+                                    statusReview.start();
+                                    statusReviewOff = false;
+                                }
+
+                                // assuming this characteristic is sending jpeg data
+                                handleJPEG(characteristic);
+                            }
+                        });
+                    }
+
+
+                    @Override
+                    public void onCharacteristicWrite(BluetoothGatt gatt,
+                                                      BluetoothGattCharacteristic characteristic,
+                                                      int status) {
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            Log.i("OnCharaWrite", "Successfully written");
+                        }
+                    }
+                };
+
+                receiver = new BroadcastReceiver() {
+
+                    @Override
+                    public void onReceive(final Context context, final Intent intent) {
+                        serviceHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+
+                                String action = intent.getAction();
+
+                        /*
+                        if (DISMISS.equals(action)) {
+                            // User clicks notification dismiss or green button in robotinfo
+
+                            Log.i("DISMISS.receiver", "Inside dismiss block");
+                            dismissedList.add(new DismissedRobot(DeviceUtilities.robot.getGattServer().getDevice()));
+                            DeviceUtilities.robot.getGattServer().disconnect();
+
+                        } else */
+                                if (DESERIALIZE_JPEG.equals(action)) {
+                                    // image transfer has been completed
+
+                                    try {
+
+                                        JSONObject jsonJPEG = new JSONObject(strJSON);
+                                        Log.i("JPEG.RECEIVER", jsonJPEG.getString("img"));
+                                        FileOutputStream output = context.openFileOutput("img.jpg", Context.MODE_PRIVATE);
+                                        output.write(Base64.decode(jsonJPEG.getString("img"), Base64.DEFAULT));
+                                        output.flush();
+                                        output.close();
+                                        Bitmap image = BitmapFactory.decodeFile(context.getFilesDir().getAbsolutePath() + "/img.jpg");
+                                        model.get(0).setImage(image);
+                                        setModel(model);
+                                        //robot.setImage(image);
+                                        //sendBroadcast(new Intent().setAction(IMAGE_COMPLETE));
+                                        currConnectedDevice.disconnect();
+
+                                    } catch (Exception ex) {
+                                        Log.e("JPEG.receiver", "Error in writing jpeg");
+                                    }
+                                    strJSON = null;
+
+                                } /*else if (SEND_JPEG.equals(action)) {
+                            //start sending packets
+                            Log.i("SEND_JPEG.receiver", "Inside send_JPEG");
+                            sendJPEG();
+                        } */
+
+                            }
+                        });
+                    }
+                };
+                IntentFilter filter = new IntentFilter();
+                //filter.addAction(DISMISS);
+                filter.addAction(DESERIALIZE_JPEG);
+                //filter.addAction(SEND_JPEG);
+                registerReceiver(receiver, filter);
             }
         }); // end handler post
     }
@@ -199,6 +487,10 @@ public class ControllerService extends Service {
     @Override
     public void onDestroy() {
 
+        //close if we are connected
+        if (currConnectedDevice != null) {
+            currConnectedDevice.close();
+        }
 
         //stop scanning
         if (isScanning) {
@@ -210,10 +502,13 @@ public class ControllerService extends Service {
             });
         }
 
+
         //turn off user's bluetooth if it was off before app launch
         if (btInitOff) {
             btAdapter.disable();
         }
+
+        unregisterReceiver(receiver);
 
         // cleaning up
         btAdapter = null;
@@ -224,7 +519,7 @@ public class ControllerService extends Service {
         supportedCharas = null;
         serviceHandler = null;
         serviceLooper = null;
-        Log.i("Service.onDestroy()", "Destroyed");
+        Log.i("Controller.onDestroy()", "Destroyed");
     }
 
     /**
@@ -539,14 +834,15 @@ public class ControllerService extends Service {
             return;
         }
 
-        Log.i("Service.connect()", "connecting to " + device.getAddress());
+        Log.i("Controller.connect()", "connecting to " + device.getAddress());
 
         try {
+            // using reflection to get internal connectGatt
             Method connectGattMethod = device.getClass().getMethod("connectGatt", Context.class, boolean.class, BluetoothGattCallback.class, int.class);
             connectGattMethod.invoke(device, ControllerService.this,
                     false, btGattCallback, BluetoothDevice.TRANSPORT_LE);
         } catch (Exception ex) {
-            Log.i("Service.connect()", "failed connection");
+            Log.i("Controller.connect()", "failed connection");
         }
 
         isConnected = true;
@@ -613,16 +909,487 @@ public class ControllerService extends Service {
     }
 
     /**
+     * used for multi packet reads.
+     * compares time stamps to determine when notification wave is over
+     */
+
+    private class TransferStatusReview extends Thread {
+
+        private boolean keepAlive;
+        private BluetoothGattCharacteristic characteristic;
+        long transferTimeStamp;
+
+        public TransferStatusReview(BluetoothGattCharacteristic characteristic) {
+            this.characteristic = characteristic;
+            keepAlive = true;
+        }
+
+        @Override
+        public void run() {
+
+            while (keepAlive) {
+
+                // take time at beginning of loop
+                transferTimeStamp = System.currentTimeMillis();
+
+                // sleep for a bit
+                try {
+                    sleep(100);
+                    //Log.i("transfer", "sleeping");
+                } catch (InterruptedException ex) {
+                }
+
+                // take an interruptible lock
+                try {
+                    transferLock.lockInterruptibly();
+                } catch (InterruptedException ex) {
+                    Log.i("TransferStatusReview", "Closed while blocking");
+                }
+
+                Log.i("TransferReview", (transferTimeStamp - notifyTimeStamp) + "");
+
+                if ((transferTimeStamp - notifyTimeStamp) >= 150 && packetsFound.containsValue("")) {
+                    //TRANSFER FINISHED
+
+                    // gather missing packet numbers
+                    byte[] missedPackets = new byte[20];
+                    short byteIndex = 0;
+                    String bitString = "1"; // indicates missing packet list
+                    for (Integer i = 0; i < packetsFound.size(); i++) {
+
+                        if (bitString.length() == 8) {
+                            missedPackets[byteIndex] = (byte) Integer.parseInt(bitString, 2);
+                            byteIndex++;
+                            bitString = "";
+                        }
+
+                        if (packetsFound.get(i).equals("")) {
+                            bitString += "1";
+                            //Log.i("Transfer null", packetsFound.get(i));
+                        } else {
+                            //Log.i("Transfer string", packetsFound.get(i));
+                            bitString += "0";
+                        }
+
+                    }
+                    // append 0's to remaining bits of last byte
+                    for (int i = bitString.length(); i < 8; i++) {
+                        bitString += "0";
+                    }
+
+                    missedPackets[byteIndex] = (byte) Integer.parseInt(bitString, 2);
+
+                    // write missing packet list back to server
+                    missingPacketWrite.setValue(missedPackets);
+                    currConnectedDevice.writeCharacteristic(missingPacketWrite);
+
+                    //not alive!! let others know of your suicide.
+                    statusReviewOff = true;
+
+                    // stop loop
+                    keepAlive = false;
+
+                    // expecting missed packets
+                    awaitingMissedPackets = true;
+                }
+
+                //release lock
+                transferLock.unlock();
+            }
+
+        }
+
+        public void close() {
+            keepAlive = false;
+            statusReviewOff = true;
+        }
+    }
+
+    /**
+     * * makes a robot and adds it to our copy of the model
+     * * takes care of enabling notifications
+     */
+    private void makeRobot(BluetoothGatt gatt) {
+
+        ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) gatt.getServices();
+
+        // setting robot name and rssi (proximity)
+        Robot robot = new Robot(gatt.getDevice().getName(), robotsAsBTDevices.get(gatt.getDevice()));
+
+        for (BluetoothGattService service : serviceList) {
+
+            String uuidOfService = service.getUuid().toString();
+
+            if (supportedServices.containsKey(uuidOfService)) {
+
+                ArrayList<BluetoothGattCharacteristic> charList = ((ArrayList<BluetoothGattCharacteristic>) service.getCharacteristics());
+
+                for (BluetoothGattCharacteristic chara : charList) {
+                    String uuidOfCharacteristic = chara.getUuid().toString();
+
+                    if (supportedCharas.containsKey(uuidOfCharacteristic)) {
+                        boolean canBeRead = false;
+                        // Attempt to read this characteristic
+                        if (gatt.readCharacteristic(chara)) {
+                            try {
+                                makeRobotBlock.take();
+                                canBeRead = true;
+                            } catch (Exception ex) {
+                                Log.e("makeRobot()", "failed to take from blocking queue");
+                            }
+                        }
+
+                        if (canBeRead) {
+                            // checking if characteristic supports notification or indication (one or the other)
+                            if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+
+                                //enable notifications
+                                subscribe(chara, true, 0, gatt);
+
+                                try {
+                                    makeRobotBlock.take();
+                                } catch (InterruptedException ex) {
+                                    Log.e("makeRobot()", "failed to take from blocking queue");
+                                }
+
+                            } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+
+                                //enable indications
+                                subscribe(chara, true, 1, gatt);
+                            }
+                        }
+
+                        if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
+                            totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
+                        } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+                            missingPacketWrite = chara;
+                        }
+                        //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
+                        //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
+                        //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
+
+                    }
+                }
+            }
+        }
+
+        /*
+        int customServiceCount = 0;
+        for (BluetoothGattService service : serviceList) {
+
+            String uuidOfService = service.getUuid().toString();
+
+            ArrayList<BluetoothGattCharacteristic> charList = ((ArrayList<BluetoothGattCharacteristic>) service.getCharacteristics());
+            List<RobotCharacteristic> robotCharacteristics = new ArrayList<>();
+            int customCharaCount = 0;
+
+            for (BluetoothGattCharacteristic chara : charList) {
+
+
+                String uuidOfCharacteristic = chara.getUuid().toString();
+                boolean canBeRead = false;
+
+                // Attempt to read this characteristic
+                if (robot.getGattServer().readCharacteristic(chara)) {
+                    try {
+                        chara = DeviceUtilities.blockQueue.take();
+                        canBeRead = true;
+                    } catch (Exception ex) {
+                        Log.e("makeRobot()", "failed to take from blocking queue");
+                    }
+                }
+
+                if (canBeRead) {
+                    // checking if characteristic supports notification or indication (one or the other)
+                    if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+
+                        //enable notifications
+                        subscribe(chara, true, 0);
+
+                        try {
+                            makeRobotBlock.take();
+                        } catch (InterruptedException ex) {
+                            Log.e("makeRobot()", "failed to take from blocking queue");
+                        }
+
+                    } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+
+                        //enable indications
+                        subscribe(chara, true, 1);
+                    }
+                }
+
+                if (supportedCharas.containsKey(uuidOfCharacteristic)) {
+                    robotCharacteristics.add(new RobotCharacteristic(
+                            supportedCharas.get(uuidOfCharacteristic),
+                            (canBeRead ? getCharaValue(chara) : "Cannot be read"),
+                            chara
+                    ));
+                } else {
+                    robotCharacteristics.add(new RobotCharacteristic(
+                            "Custom Characteristic " + (++customCharaCount),
+                            (canBeRead ? getCharaValue(chara) : "Cannot be read"),
+                            chara
+                    ));
+                    Log.i("makeRobot()", uuidOfCharacteristic);
+                }
+            }
+
+            robot.addRobotService(
+                    (supportedServices.containsKey(uuidOfService) ?
+                            supportedServices.get(uuidOfService) : "Custom Service " + (++customServiceCount)),
+                    service, robotCharacteristics
+            );
+        }
+        */
+        modelLock.lock();
+        model.add(robot);
+        modelLock.unlock();
+        Log.i("Controller.makeRobot()", "Finished");
+    }
+    /**
+     * enables or disables characteristic notification/indication
+     *
+     * @param characteristic   will have its notify descriptor turned on or off
+     * @param enable           specifies to enable or disable notification
+     * @param notifyOrIndicate specifies an indication or notification: notify = 0, indicate = 1
+     * @param gatt             is server of robot
+     */
+    private void subscribe(BluetoothGattCharacteristic characteristic,
+                           boolean enable, int notifyOrIndicate, BluetoothGatt gatt) {
+
+        if (gatt == null) {
+            Log.i("Controller.subscribe()", "gatt server is null");
+            return;
+        }
+        // gatt server needs to know to notify or not
+        gatt.setCharacteristicNotification(characteristic, enable);
+
+        // characteristic needs to know to notify or not
+
+        // uuid of descriptor responsible for notification/indication enabling/disabling specified
+        // by the Bluetooth spec - org.bluetooth.descriptor.gatt.client_characteristic_configuration
+        UUID descripUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+
+        if (notifyOrIndicate == 0) {
+            //setting Notification value
+            (characteristic.getDescriptor(descripUuid)).setValue((enable ?
+                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE :
+                    BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE));
+        } else {
+            //setting Indication value
+            (characteristic.getDescriptor(descripUuid)).setValue((enable ?
+                    BluetoothGattDescriptor.ENABLE_INDICATION_VALUE :
+                    BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE));
+        }
+
+
+        //write descriptor - received in callback onDescriptorWrite
+        gatt.writeDescriptor(characteristic.getDescriptor(descripUuid));
+    }
+
+
+
+    /**
+     * **useful for initial reads**
+     * checks format types to determine how to interpret the characteristic's value
+     *
+     * @param chara is the characteristic
+     * @return string representation of the characteristic value
+     */
+    private String getCharaValue(BluetoothGattCharacteristic chara) {
+
+        if (chara.getUuid().toString().equals("00002a10-30de-4630-9b59-27228d45bf11")) {
+
+            // grabbing initial value in characteristic which says how many packets total
+            // there are to be sent
+            int totalNumOfPackets = java.nio.ByteBuffer.wrap(chara.getValue()).getInt();
+
+            // initialize map with correct number of packets wanted
+            if (totalNumOfPackets >= 128) {
+
+                for (int i = 0; i < 128; i++) {
+                    packetsFound.put(i, "");
+                }
+
+            } else {
+
+                for (int i = 0; i < totalNumOfPackets; i++) {
+                    packetsFound.put(i, "");
+                }
+            }
+
+            return totalNumOfPackets + "";
+
+        } else if (chara.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0) == 128) {
+
+            //this is a generic computer as documented in the bluetooth specification
+            return "Generic Computer";
+
+        } else {
+
+            return chara.getStringValue(0);
+
+        }
+    }
+
+
+    private void handleJPEG(BluetoothGattCharacteristic characteristic) {
+
+        // getting new value in characteristic after initial read
+        byte rawPacket[] = characteristic.getValue();
+
+        // getting missing packet flag value
+        int missingFlag = (rawPacket[0] & 0x80);
+
+        //
+        if ((missingFlag == 128 && awaitingMissedPackets) ||
+                missingFlag == 0 && !awaitingMissedPackets) {
+
+
+            // getting packet number data
+            int packetNum = (rawPacket[0] & 0x7F);
+
+            //testTotal += 1;
+            //Log.i("handleJPEG()", "Packet number: " + packetNum);
+            //Log.i("handleJPEG()", "Running Total: " + testTotal);
+
+            // getting json data
+            byte json[] = new byte[rawPacket.length - 1];
+            System.arraycopy(rawPacket, 1, json, 0, (rawPacket.length - 1));
+
+            packetsFound.put(packetNum, new String(json));
+
+            // check to see if all packets in current wave are buffered
+            if (!packetsFound.containsValue("")) {
+                // set awaitingMissedPackets to false
+                awaitingMissedPackets = false;
+
+                //Log.i("handleJPEG()", "no null found");
+
+                // if here then all packets have been found
+                // start appending strJSON
+
+                //Log.i("handleJPEG()", "size: " + packetsFound.size());
+
+                for (Integer i = 0; i < packetsFound.size(); i++) {
+
+                    // quick fix to check for interesting null packets
+                    //if (packetsFound.get(i).equals("")) {
+                    //continue;
+                    //}
+
+                    /*
+                    //if stringJPEG contains no textual content of characteristic yet
+                    if (strJSON == null) {
+                        if (packetsFound.get(i).substring(0, 3).equals("$$$")) {
+                            strJSON = packetsFound.get(i).substring(3);
+                            Log.i("handleJPEG()", "Started JSON string");
+                        }
+                        Log.i("handleJPEG()", packetsFound.get(i));
+
+                    } else {
+                        Log.i("handleJPEG()", "Size: " + packetsFound.size());
+                        Log.i("handleJPEG()", "i: " + i);
+                        Log.i("handleJPEG()", "Content at i: " + packetsFound.get(i));
+                        int start = (packetsFound.get(i).length() - 3);
+                        int end = packetsFound.get(i).length();
+
+                        if (packetsFound.get(i).substring(start, end).equals("$$$")) {
+
+                            strJSON += packetsFound.get(i).substring(0, start);
+                            // end of JSON
+
+                        } else {
+                            //Log.i("handleJPEG()", "adding: " + packetsFound.get(i));
+                            strJSON += packetsFound.get(i);
+
+                        }
+                    }
+                    */
+
+                    if (null == strJSON) {
+                        strJSON = packetsFound.get(i);
+                    } else {
+                        strJSON += packetsFound.get(i);
+                    }
+                }
+
+                // using RobotCharacteristic's charaValue to keep track of how many packets are left
+                // note: there is no writing to the characteristic and the value stored is local
+                // **there is a smarter more efficient way**
+                //int totalPacketsLeft = Integer.parseInt(robot.getRobotCharacteristic(characteristic).getCharaValue());
+               // totalPacketsLeft = (totalPacketsLeft - packetsFound.size());
+               // robot.getRobotCharacteristic(characteristic).setCharaValue(totalPacketsLeft + "");
+                totalNumOfPackets = (totalNumOfPackets - packetsFound.size());
+
+                // set up map with correct number of packets wanted
+                packetsFound.clear();
+                if (totalNumOfPackets >= 128) {
+
+                    for (int i = 0; i < 128; i++) {
+                        packetsFound.put(i, "");
+                    }
+
+                } else if (totalNumOfPackets == 0) {
+
+                    //Log.i("handleJPEG()", "Ended JSON string");
+                    //Log.i("json", strJSON);
+                    statusReview.close();
+                    sendBroadcast(new Intent().setAction(DESERIALIZE_JPEG));
+
+                } else {
+
+                    for (int i = 0; i < totalNumOfPackets; i++) {
+                        packetsFound.put(i, "");
+                    }
+                }
+
+                // writing to service to let it know all packets have been received
+
+                byte[] successMessage = new byte[20];
+                String bitString = "0"; // indicates success
+                successMessage[0] = (byte) Integer.parseInt(bitString, 2);
+
+                missingPacketWrite.setValue(successMessage);
+
+                currConnectedDevice.writeCharacteristic(missingPacketWrite);
+
+                //Log.i("handleJPEG()", strJSON );
+            }
+        }
+
+        // release lock
+        transferLock.unlock();
+        //Log.i("handleJPEG()", "null found");
+    }
+
+
+    /**
      * **************************************
      * ** MODEL METHODS BELOW THIS COMMENT **
      * **************************************
      */
-    
+
     /**
      * @return a copy of the current model
      */
     public static ArrayList<Robot> getModel() {
-        return new ArrayList<Robot>(theModel);
+        theModelLock.lock();
+        ArrayList<Robot> copyOfTheModel = new ArrayList<Robot>(theModel);
+        theModelLock.unlock();
+        return copyOfTheModel;
+    }
+
+    /**
+     * set the model
+     * @param newModel is what the model should be now
+     */
+    private void setModel(ArrayList<Robot> newModel) {
+        theModelLock.lock();
+        theModel = new ArrayList<Robot>(newModel);
+        theModelLock.unlock();
     }
 }
 

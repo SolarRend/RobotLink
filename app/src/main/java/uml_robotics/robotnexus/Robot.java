@@ -12,7 +12,21 @@ public class Robot {
     private boolean dismissed = false; // for dismissed robots
     private int proximity; // how close is this robot
 
-    public Robot(String name) {
+    public Robot(String name, int rssi) {
         this.name = name;
+        this.proximity = rssi;
     }
+
+    public void setImage(Bitmap image) {
+        this.image = image;
+    }
+
+    public Bitmap getImage() {
+        return image;
+    }
+
+    @Override
+    public String toString() {
+        return "Hello, I am " + (name == null? "Null" : name);
+     }
 }
