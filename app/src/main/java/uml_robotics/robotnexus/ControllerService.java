@@ -353,31 +353,35 @@ public class ControllerService extends Service {
                         Log.i("onCharaChange", "Successfully notified");
 
 
-                        serviceHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
+                        // for reasons unknown we cannot post onto service thread
+                        // (or even another work thread) lest multiple characteristics
+                        // from the same notification appear
+
+                        //serviceHandler.post(new Runnable() {
+                        //@Override
+                        //public void run() {
 
 
-                                // handle new value in characteristic
+                        // handle new value in characteristic
 
-                                // update time stamp
-                                notifyTimeStamp = System.currentTimeMillis();
+                        // update time stamp
+                        notifyTimeStamp = System.currentTimeMillis();
 
-                                // take lock - assuming this characteristic is sending jpeg data
-                                transferLock.lock();
+                        // take lock - assuming this characteristic is sending jpeg data
+                        transferLock.lock();
 
-                                // check if our transfer review is off
-                                if (statusReviewOff) {
-                                    // turn it on
-                                    statusReview = new TransferStatusReview(characteristic);
-                                    statusReview.start();
-                                    statusReviewOff = false;
-                                }
+                        // check if our transfer review is off
+                        if (statusReviewOff) {
+                            // turn it on
+                            statusReview = new TransferStatusReview(characteristic);
+                            statusReview.start();
+                            statusReviewOff = false;
+                        }
 
-                                // assuming this characteristic is sending jpeg data
-                                handleJPEG(characteristic);
-                            }
-                        });
+                        // assuming this characteristic is sending jpeg data
+                        handleJPEG(characteristic);
+                        //}
+                        //});
                     }
 
 
