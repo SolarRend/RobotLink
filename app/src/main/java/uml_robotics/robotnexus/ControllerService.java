@@ -79,7 +79,7 @@ public class ControllerService extends Service {
     // boolean to let others know if TransferStatusReview is on or not
     private boolean statusReviewOff = true;
     private boolean awaitingMissedPackets = false; //used to know if we should expect a missing packet
-    private BroadcastReceiver receiver; // listens for dismiss, deserialize
+    private BroadcastReceiver receiver; // listener for controller
     /*
      * characteristics/values of our currently connected robot
      */
@@ -225,7 +225,7 @@ public class ControllerService extends Service {
                                         //testTotal = 0;
                                         //Log.i("onDisconnect", "Disconnected with status " + status);
                                         Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
-
+                                        gatt.close();
                                         currConnectedDevice = null;
                                         isConnected = false;
 

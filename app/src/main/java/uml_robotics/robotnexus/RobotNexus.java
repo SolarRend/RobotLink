@@ -22,6 +22,7 @@ public class RobotNexus extends AppCompatActivity {
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
     private ArrayAdapter<Robot> displayAdapter; //adapter for listview to display robot info
     private Handler robotNexusHandler; //handler to manipulate robot nexus UI
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
