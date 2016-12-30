@@ -11,10 +11,12 @@ public class Robot {
     private Bitmap image; //image a robot may want to transfer
     private boolean dismissed = false; // for dismissed robots
     private int proximity; // how close is this robot
+    private String id;
 
-    public Robot(String name, int rssi) {
+    public Robot(String name, int rssi, String id) {
         this.name = name;
         this.proximity = rssi;
+        this.id = id;
     }
 
     public void setImage(Bitmap image) {

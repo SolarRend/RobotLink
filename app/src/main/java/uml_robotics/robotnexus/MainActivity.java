@@ -17,6 +17,14 @@ import android.util.Log;
  * created Robot object that the model will contain an array list of
  * finished onstartcommand stuff in controllerservice
  *
+ *
+ * * Dec 28, 2016
+ * * changed theme of app
+ *
+ *
+ * * Dec 30, 2016
+ *
+ *
  */
 
 public class MainActivity extends AppCompatActivity {

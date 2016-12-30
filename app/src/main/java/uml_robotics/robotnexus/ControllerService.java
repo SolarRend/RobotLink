@@ -1017,8 +1017,9 @@ public class ControllerService extends Service {
 
         ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) gatt.getServices();
 
-        // setting robot name and rssi (proximity)
-        Robot robot = new Robot(gatt.getDevice().getName(), robotsAsBTDevices.get(gatt.getDevice()));
+        // setting robot name, rssi (proximity) and ID
+        Robot robot = new Robot(gatt.getDevice().getName(), robotsAsBTDevices.get(gatt.getDevice()),
+                gatt.getDevice().getAddress());
 
         for (BluetoothGattService service : serviceList) {
 

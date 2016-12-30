@@ -65,6 +65,7 @@ public class RobotNexus extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // end our update
         modelUpdate.close();
     }
 
@@ -77,6 +78,7 @@ public class RobotNexus extends AppCompatActivity {
 
                 modelPrime = ControllerService.getModel();
 
+                // if our models don't match up
                 if (!(modelPrime.containsAll(model) && model.containsAll(modelPrime))) {
                     model = new ArrayList<>(modelPrime);
                     Log.i("RobotNexus.ModelUpdate", "Model changed");
