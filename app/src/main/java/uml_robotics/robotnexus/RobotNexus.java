@@ -67,6 +67,7 @@ public class RobotNexus extends AppCompatActivity {
         super.onDestroy();
         // end our update
         modelUpdate.close();
+        robotNexusHandler = null;
     }
 
     private class ModelUpdate extends Thread {

@@ -22,6 +22,7 @@ import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileOutputStream;
@@ -39,7 +40,8 @@ import static java.lang.Thread.sleep;
 
 public class ControllerService extends Service {
     // action name to extract the jpeg from strJSON
-    protected static final String DESERIALIZE_JPEG = "uml_robotics.robotlink.deserialize_jpeg";
+    private final String DESERIALIZE_JPEG = "uml_robotics.robotlink.deserialize_jpeg";
+    private final String UPDATE_COMPLETE = "uml_robotics.robotlink.update_complete";
     private ServiceLooper serviceLooper; //looper to maintain a service thread
     private Handler serviceHandler; // handler for posting to looper
     private static ArrayList<Robot> theModel; // the model of the system -> only manipulate through its methods
@@ -64,7 +66,7 @@ public class ControllerService extends Service {
     // used in makeRobot() for reading characteristics and
     // stopping from finishing until descriptor has been written (because image sends after read request)
     private BlockingQueue<Integer> makeRobotBlock = null;
-    // lock for sequencing statusReview and handleJPEG()
+    // lock for sequencing statusReview and getUpdate()
     private ReentrantLock transferLock;
     // queue for scan callbacks
     //private ArrayList<ScanCallbackPackage> scanCallbackPackages;
@@ -75,7 +77,7 @@ public class ControllerService extends Service {
     private TransferStatusReview statusReview = null;
     // time stamp updated on each onCharacteristicChanged callback
     private long notifyTimeStamp;
-    private String strJSON = null; // contains JSON string for a JPEG file
+    private String strJSON = null; // contains JSON string from server
     // boolean to let others know if TransferStatusReview is on or not
     private boolean statusReviewOff = true;
     private boolean awaitingMissedPackets = false; //used to know if we should expect a missing packet
@@ -185,14 +187,13 @@ public class ControllerService extends Service {
 
                         //Log.i("leCallback", "Start");
 
-                        //enqueue job for handleScanningCallback to work with
+                        //enqueue job for handleScanCallback to work with
                         //scanCallbackPackages.add(new ScanCallbackPackage(device, rssi, scanRecord));
-
                         // get on service thread
                         serviceHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                handleScanningCallback(device, rssi, scanRecord);
+                                handleScanCallback(device, rssi, scanRecord);
                             }
                         });
                     }
@@ -363,25 +364,28 @@ public class ControllerService extends Service {
 
 
                         // handle new value in characteristic
+                        // this characteristic sends an update
+                        if (characteristic.
+                                getUuid().toString().equals("00002a10-30de-4630-9b59-27228d45bf11")) {
+                            // update time stamp
+                            notifyTimeStamp = System.currentTimeMillis();
 
-                        // update time stamp
-                        notifyTimeStamp = System.currentTimeMillis();
+                            // take lock - this characteristic is sending an update
+                            transferLock.lock();
 
-                        // take lock - assuming this characteristic is sending jpeg data
-                        transferLock.lock();
+                            // check if our transfer review is off
+                            if (statusReviewOff) {
+                                // turn it on
+                                statusReview = new TransferStatusReview(characteristic);
+                                statusReview.start();
+                                statusReviewOff = false;
+                            }
 
-                        // check if our transfer review is off
-                        if (statusReviewOff) {
-                            // turn it on
-                            statusReview = new TransferStatusReview(characteristic);
-                            statusReview.start();
-                            statusReviewOff = false;
+                            // this characteristic is sending update
+                            getUpdate(characteristic);
+                            //}
+                            //});
                         }
-
-                        // assuming this characteristic is sending jpeg data
-                        handleJPEG(characteristic);
-                        //}
-                        //});
                     }
 
 
@@ -402,7 +406,6 @@ public class ControllerService extends Service {
                         serviceHandler.post(new Runnable() {
                             @Override
                             public void run() {
-
 
                                 String action = intent.getAction();
 
@@ -427,8 +430,10 @@ public class ControllerService extends Service {
                                         output.flush();
                                         output.close();
                                         Bitmap image = BitmapFactory.decodeFile(context.getFilesDir().getAbsolutePath() + "/img.jpg");
+                                        modelLock.lock();
                                         model.get(0).setImage(image);
                                         setModel(model);
+                                        modelLock.unlock();
                                         //robot.setImage(image);
                                         //sendBroadcast(new Intent().setAction(IMAGE_COMPLETE));
                                         currConnectedDevice.disconnect();
@@ -438,12 +443,48 @@ public class ControllerService extends Service {
                                     }
                                     strJSON = null;
 
-                                } /*else if (SEND_JPEG.equals(action)) {
-                            //start sending packets
-                            Log.i("SEND_JPEG.receiver", "Inside send_JPEG");
-                            sendJPEG();
-                        } */
+                                } else if (UPDATE_COMPLETE.equals(action)) {
+                                    // update complete
+                                    // convert our string into JSON
+                                    try {
+                                        JSONObject jsonStatus = new JSONObject(strJSON);
+                                        strJSON = null;
+                                        if (jsonStatus.getString("msgtype").equals("ack")) {
+                                            // no update
+                                            //robotsAsBTDevices.clear();
+                                            currConnectedDevice.disconnect();
+                                            Log.i("UPDATE.receiver", "ACK!");
+                                            return;
+                                        }
 
+                                        Robot robot = null;
+                                        modelLock.lock();
+                                        for (Robot bot : model) {
+                                            if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
+                                                robot = bot;
+                                                break;
+                                            }
+                                        }
+                                        int index = model.indexOf(robot);
+                                        modelLock.unlock();
+
+                                        robot.setName(jsonStatus.getString("name"));
+                                        robot.setCurrState(jsonStatus.getString("state"));
+                                        robot.setModel(jsonStatus.getString("model"));
+
+                                        modelLock.lock();
+                                        model.set(index, robot);
+                                        modelLock.unlock();
+
+                                        setModel(model);
+
+                                        //robotsAsBTDevices.clear();
+                                        currConnectedDevice.disconnect();
+                                    } catch (JSONException ex) {
+                                        Log.e("UPDATE.receiver", "Failed to convert to JSON");
+                                        return;
+                                    }
+                                }
                             }
                         });
                     }
@@ -451,6 +492,7 @@ public class ControllerService extends Service {
                 IntentFilter filter = new IntentFilter();
                 //filter.addAction(DISMISS);
                 filter.addAction(DESERIALIZE_JPEG);
+                filter.addAction(UPDATE_COMPLETE);
                 //filter.addAction(SEND_JPEG);
                 registerReceiver(receiver, filter);
             }
@@ -521,8 +563,6 @@ public class ControllerService extends Service {
         btGattCallback = null;
         supportedServices = null;
         supportedCharas = null;
-        serviceHandler = null;
-        serviceLooper = null;
         Log.i("Controller.onDestroy()", "Destroyed");
     }
 
@@ -581,9 +621,9 @@ public class ControllerService extends Service {
      * @param rssi       is the signal strength value of the advertisement
      * @param scanRecord is the payload
      */
-    private void handleScanningCallback(final BluetoothDevice device, final int rssi,
+    private void handleScanCallback(final BluetoothDevice device, final int rssi,
                                         final byte[] scanRecord) {
-        final String TAG = "handleScanningCallback()";
+        final String TAG = "handleScanCallback()";
 
         // safety-net : if uuid is null then app should not proceed.
         if (uuidOfInterest == null) {
@@ -1018,7 +1058,7 @@ public class ControllerService extends Service {
         ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) gatt.getServices();
 
         // setting robot name, rssi (proximity) and ID
-        Robot robot = new Robot(gatt.getDevice().getName(), robotsAsBTDevices.get(gatt.getDevice()),
+        Robot robot = new Robot(robotsAsBTDevices.get(gatt.getDevice()),
                 gatt.getDevice().getAddress());
 
         for (BluetoothGattService service : serviceList) {
@@ -1066,6 +1106,7 @@ public class ControllerService extends Service {
 
                         if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
                             totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
+                            Log.i("makeRobot()", "Found Packet Read");
                         } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
                             missingPacketWrite = chara;
                         }
@@ -1240,7 +1281,7 @@ public class ControllerService extends Service {
     }
 
 
-    private void handleJPEG(BluetoothGattCharacteristic characteristic) {
+    private void getUpdate(BluetoothGattCharacteristic characteristic) {
 
         // getting new value in characteristic after initial read
         byte rawPacket[] = characteristic.getValue();
@@ -1257,8 +1298,8 @@ public class ControllerService extends Service {
             int packetNum = (rawPacket[0] & 0x7F);
 
             //testTotal += 1;
-            //Log.i("handleJPEG()", "Packet number: " + packetNum);
-            //Log.i("handleJPEG()", "Running Total: " + testTotal);
+            //Log.i("getUpdate()", "Packet number: " + packetNum);
+            //Log.i("getUpdate()", "Running Total: " + testTotal);
 
             // getting json data
             byte json[] = new byte[rawPacket.length - 1];
@@ -1271,12 +1312,12 @@ public class ControllerService extends Service {
                 // set awaitingMissedPackets to false
                 awaitingMissedPackets = false;
 
-                //Log.i("handleJPEG()", "no null found");
+                //Log.i("getUpdate()", "no null found");
 
                 // if here then all packets have been found
                 // start appending strJSON
 
-                //Log.i("handleJPEG()", "size: " + packetsFound.size());
+                //Log.i("getUpdate()", "size: " + packetsFound.size());
 
                 for (Integer i = 0; i < packetsFound.size(); i++) {
 
@@ -1339,10 +1380,10 @@ public class ControllerService extends Service {
 
                 } else if (totalNumOfPackets == 0) {
 
-                    //Log.i("handleJPEG()", "Ended JSON string");
+                    //Log.i("getUpdate()", "Ended JSON string");
                     //Log.i("json", strJSON);
                     statusReview.close();
-                    sendBroadcast(new Intent().setAction(DESERIALIZE_JPEG));
+                    sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
 
                 } else {
 
@@ -1361,13 +1402,13 @@ public class ControllerService extends Service {
 
                 currConnectedDevice.writeCharacteristic(missingPacketWrite);
 
-                //Log.i("handleJPEG()", strJSON );
+                //Log.i("getUpdate()", strJSON );
             }
         }
 
         // release lock
         transferLock.unlock();
-        //Log.i("handleJPEG()", "null found");
+        //Log.i("getUpdate()", "null found");
     }
 
 

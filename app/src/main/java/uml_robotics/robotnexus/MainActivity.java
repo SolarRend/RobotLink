@@ -7,7 +7,7 @@ import android.util.Log;
 
 /*
  * DON'T do heavy work in CALLBACKS (~3 threads in pool )
- * Figure out a way for
+ *
  */
 
 /*
@@ -23,7 +23,7 @@ import android.util.Log;
  *
  *
  * * Dec 30, 2016
- *
+ * * worked on new dialog protocol
  *
  */
 
