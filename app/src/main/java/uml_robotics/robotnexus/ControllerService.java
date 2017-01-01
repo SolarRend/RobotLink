@@ -26,6 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileOutputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -154,7 +155,7 @@ public class ControllerService extends Service {
                 supportedCharas.put("00002a10-30de-4630-9b59-27228d45bf11", "Packet Read");
                 supportedCharas.put("00002a11-30de-4630-9b59-27228d45bf11", "Missing Packet Write");
                 supportedCharas.put("00002a12-30de-4630-9b59-27228d45bf11", "Packet Write");
-                supportedCharas.put("00002a13-30de-4630-9b59-27228d45bf11", "Missing Packet Read");
+                //supportedCharas.put("00002a13-30de-4630-9b59-27228d45bf11", "Missing Packet Read");
                 supportedCharas.put("00002a14-30de-4630-9b59-27228d45bf11", "Total Number of Packets");
 
                 //List of rejected bluetooth devices
@@ -266,6 +267,11 @@ public class ControllerService extends Service {
 
                                         // safety-net
                                         if (btAdapter != null) {
+                                            try {
+                                                sleep(10000);
+                                            } catch (Exception ex) {
+
+                                            }
                                             //starting scan on service thread
                                             btAdapter.startLeScan(leCallback);
                                             isScanning = true;
@@ -330,7 +336,24 @@ public class ControllerService extends Service {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             //finished reading so add our characteristic to the blocking queue
                             makeRobotBlock.add(1);
-                            //Log.i("onCharacteristicRead", "finished reading");
+                            Log.i("onCharacteristicRead", "finished reading");
+                            Log.i("onCharacteristicRead",
+                                    java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt() + "");
+                            Log.i("onCharacteristicRead", supportedCharas.get(characteristic.getUuid().toString()));
+                            totalNumOfPackets = java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt();
+                            // initialize map with correct number of packets wanted
+                            if (totalNumOfPackets >= 128) {
+
+                                for (int i = 0; i < 128; i++) {
+                                    packetsFound.put(i, "");
+                                }
+
+                            } else {
+
+                                for (int i = 0; i < totalNumOfPackets; i++) {
+                                    packetsFound.put(i, "");
+                                }
+                            }
                         } else {
                             Log.e("onCharacteristicRead", "Reading failed");
                         }
@@ -1053,6 +1076,8 @@ public class ControllerService extends Service {
      */
     private void makeRobot(BluetoothGatt gatt) {
 
+        ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
+
         ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) gatt.getServices();
 
         // setting robot name, rssi (proximity) and ID
@@ -1077,7 +1102,7 @@ public class ControllerService extends Service {
 
                             //enable notifications
                             subscribe(chara, true, 0, gatt);
-
+                            Log.i("makeRobot().not", supportedCharas.get(uuidOfCharacteristic));
                             try {
                                 makeRobotBlock.take();
                             } catch (InterruptedException ex) {
@@ -1088,7 +1113,7 @@ public class ControllerService extends Service {
 
                             //enable indications
                             subscribe(chara, true, 1, gatt);
-
+                            Log.i("makeRobot().ind", supportedCharas.get(uuidOfCharacteristic));
                             try {
                                 makeRobotBlock.take();
                             } catch (InterruptedException ex) {
@@ -1096,33 +1121,38 @@ public class ControllerService extends Service {
                             }
                         }
 
-
-                        boolean canBeRead = false;
-                        // Attempt to read this characteristic
-                        if (gatt.readCharacteristic(chara)) {
-                            try {
-                                makeRobotBlock.take();
-                                canBeRead = true;
-                            } catch (Exception ex) {
-                                Log.e("makeRobot()", "failed to take from blocking queue");
-                            }
-                        }
-
-
-                        if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
-                            totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
-                            Log.i("makeRobot()", "Found Packet Read");
-                        } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
-                            missingPacketWrite = chara;
-                        }
-                        //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
-                        //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
-                        //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
-
+                        allSupportedCharacteristics.add(chara);
                     }
                 }
             }
         }
+            for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
+                String uuidOfCharacteristic = chara.getUuid().toString();
+                boolean canBeRead = false;
+                // Attempt to read this characteristic
+                if (gatt.readCharacteristic(chara)) {
+                    try {
+                        makeRobotBlock.take();
+                        canBeRead = true;
+                    } catch (Exception ex) {
+                        Log.e("makeRobot()", "failed to take from blocking queue");
+                    }
+                }
+
+
+                if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
+                    //totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
+                    Log.i("makeRobot()", "Found Packet Read:" + (uuidOfCharacteristic));
+                } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+                    missingPacketWrite = chara;
+                }
+                //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
+                //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
+                //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
+
+            }
+
+
 
         /*
         int customServiceCount = 0;
