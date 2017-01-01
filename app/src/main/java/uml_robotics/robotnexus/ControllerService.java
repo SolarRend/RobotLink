@@ -183,7 +183,7 @@ public class ControllerService extends Service {
                 // queue of notifications
                 notificationQueue = new ArrayList<byte[]>();
 
-                // Lock for queue
+                // Lock for notification queue
                 notificationQueueLock = new ReentrantLock();
 
                 // create job queue for scan callbacks
@@ -468,6 +468,7 @@ public class ControllerService extends Service {
                                     try {
                                         JSONObject jsonStatus = new JSONObject(strJSON);
                                         strJSON = null;
+
                                         if (jsonStatus.getString("msgtype").equals("ack")) {
                                             // no update
                                             robotsAsBTDevices.clear();
@@ -501,13 +502,14 @@ public class ControllerService extends Service {
                                         currConnectedDevice.disconnect();
                                     } catch (JSONException ex) {
                                         Log.e("UPDATE.receiver", "Failed to convert to JSON");
-                                        return;
                                     }
                                 }
                             }
                         });
                     }
                 };
+
+
                 IntentFilter filter = new IntentFilter();
                 //filter.addAction(DISMISS);
                 filter.addAction(DESERIALIZE_JPEG);
@@ -1126,31 +1128,32 @@ public class ControllerService extends Service {
                 }
             }
         }
-            for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
-                String uuidOfCharacteristic = chara.getUuid().toString();
-                boolean canBeRead = false;
-                // Attempt to read this characteristic
-                if (gatt.readCharacteristic(chara)) {
-                    try {
-                        makeRobotBlock.take();
-                        canBeRead = true;
-                    } catch (Exception ex) {
-                        Log.e("makeRobot()", "failed to take from blocking queue");
-                    }
+
+        for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
+
+            String uuidOfCharacteristic = chara.getUuid().toString();
+
+            // Attempt to read this characteristic
+            if (gatt.readCharacteristic(chara)) {
+                try {
+                    makeRobotBlock.take();
+                } catch (Exception ex) {
+                    Log.e("makeRobot()", "failed to take from blocking queue");
                 }
-
-
-                if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
-                    //totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
-                    Log.i("makeRobot()", "Found Packet Read:" + (uuidOfCharacteristic));
-                } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
-                    missingPacketWrite = chara;
-                }
-                //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
-                //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
-                //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
-
             }
+
+
+            if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
+                //totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
+                Log.i("makeRobot()", "Found Packet Read:" + (uuidOfCharacteristic));
+            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+                missingPacketWrite = chara;
+            }
+            //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
+            //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
+            //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
+
+        }
 
 
 
@@ -1320,6 +1323,7 @@ public class ControllerService extends Service {
 
 
     private class ReadNotifications extends Thread {
+
         private boolean keepAlive = true;
 
         @Override
@@ -1440,15 +1444,17 @@ public class ControllerService extends Service {
                             //int totalPacketsLeft = Integer.parseInt(robot.getRobotCharacteristic(characteristic).getCharaValue());
                             // totalPacketsLeft = (totalPacketsLeft - packetsFound.size());
                             // robot.getRobotCharacteristic(characteristic).setCharaValue(totalPacketsLeft + "");
-                            // writing to service to let it know all packets have been received
 
+
+                            // writing to service to let it know all packets have been received
                             byte[] successMessage = new byte[20];
                             String bitString = "0"; // indicates success
                             successMessage[0] = (byte) Integer.parseInt(bitString, 2);
 
                             missingPacketWrite.setValue(successMessage);
-
                             currConnectedDevice.writeCharacteristic(missingPacketWrite);
+
+
 
                             totalNumOfPackets = (totalNumOfPackets - packetsFound.size());
 
@@ -1468,6 +1474,7 @@ public class ControllerService extends Service {
                                 close();
                                 notificationQueue.clear();
                                 sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
+
                             } else {
 
                                 for (int i = 0; i < totalNumOfPackets; i++) {
@@ -1483,7 +1490,7 @@ public class ControllerService extends Service {
                 }
             }
 
-            if (notificationQueueLock.isLocked()) {
+            if (notificationQueueLock.isHeldByCurrentThread()) {
                 notificationQueueLock.unlock();
             }
         }
