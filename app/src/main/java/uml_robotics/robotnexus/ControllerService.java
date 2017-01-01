@@ -82,10 +82,14 @@ public class ControllerService extends Service {
     private boolean statusReviewOff = true;
     private boolean awaitingMissedPackets = false; //used to know if we should expect a missing packet
     private BroadcastReceiver receiver; // listener for controller
+    private ArrayList<byte[]> notificationQueue = null; // queue for holding notification values
+    private ReentrantLock notificationQueueLock = null; // lock for accessing queue
+    private ReadNotifications readNotifications; // thread responsible for reading notifications
+
     /*
      * characteristics/values of our currently connected robot
      */
-    private int totalNumOfPackets;
+    private int totalNumOfPackets = -1;
     private BluetoothGattCharacteristic missingPacketWrite = null;
     /*
      * end fields for currently connected robot
@@ -175,6 +179,12 @@ public class ControllerService extends Service {
                 //creating lock for when controller is accessing its own copy of the model
                 modelLock = new ReentrantLock();
 
+                // queue of notifications
+                notificationQueue = new ArrayList<byte[]>();
+
+                // Lock for queue
+                notificationQueueLock = new ReentrantLock();
+
                 // create job queue for scan callbacks
                 //scanCallbackPackages = new ArrayList<ScanCallbackPackage>();
 
@@ -226,7 +236,7 @@ public class ControllerService extends Service {
                                         //testTotal = 0;
                                         //Log.i("onDisconnect", "Disconnected with status " + status);
                                         Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
-                                        gatt.close();
+                                        currConnectedDevice.close();
                                         currConnectedDevice = null;
                                         isConnected = false;
 
@@ -281,7 +291,7 @@ public class ControllerService extends Service {
                                         @Override
                                         public void run() {
 
-                                            makeRobot(gatt);
+                                            makeRobot(currConnectedDevice);
                                             /*
                                             DeviceUtilities.robot = robot;
                                             if (MainActivity.isOnMain) {
@@ -307,9 +317,9 @@ public class ControllerService extends Service {
                                         }
                                     }).start();
                                 }
+
                             }
                         });
-
                     }
 
 
@@ -321,7 +331,7 @@ public class ControllerService extends Service {
                             //finished reading so add our characteristic to the blocking queue
                             makeRobotBlock.add(1);
                             //Log.i("onCharacteristicRead", "finished reading");
-                        } else if (status == BluetoothGatt.GATT_FAILURE) {
+                        } else {
                             Log.e("onCharacteristicRead", "Reading failed");
                         }
                     }
@@ -354,38 +364,24 @@ public class ControllerService extends Service {
                         Log.i("onCharaChange", "Successfully notified");
 
 
-                        // for reasons unknown we cannot post onto service thread
-                        // (or even another work thread) lest multiple characteristics
-                        // from the same notification appear
+                            // for reasons unknown we cannot post onto service thread
+                            // (or even another work thread) lest multiple characteristics
+                            // from the same notification appear
 
-                        //serviceHandler.post(new Runnable() {
-                        //@Override
-                        //public void run() {
+                            //serviceHandler.post(new Runnable() {
+                            //@Override
+                            //public void run() {
 
-
-                        // handle new value in characteristic
-                        // this characteristic sends an update
-                        if (characteristic.
-                                getUuid().toString().equals("00002a10-30de-4630-9b59-27228d45bf11")) {
-                            // update time stamp
-                            notifyTimeStamp = System.currentTimeMillis();
-
-                            // take lock - this characteristic is sending an update
-                            transferLock.lock();
-
-                            // check if our transfer review is off
-                            if (statusReviewOff) {
-                                // turn it on
-                                statusReview = new TransferStatusReview(characteristic);
-                                statusReview.start();
-                                statusReviewOff = false;
+                            // handle new value in characteristic
+                            // this characteristic sends an update
+                            if (characteristic.
+                                    getUuid().toString().equals("00002a10-30de-4630-9b59-27228d45bf11")) {
+                                notificationQueueLock.lock();
+                                // this characteristic is sending update - add to queue
+                                notificationQueue.add(characteristic.getValue());
+                                notificationQueueLock.unlock();
                             }
 
-                            // this characteristic is sending update
-                            getUpdate(characteristic);
-                            //}
-                            //});
-                        }
                     }
 
 
@@ -451,7 +447,7 @@ public class ControllerService extends Service {
                                         strJSON = null;
                                         if (jsonStatus.getString("msgtype").equals("ack")) {
                                             // no update
-                                            //robotsAsBTDevices.clear();
+                                            robotsAsBTDevices.clear();
                                             currConnectedDevice.disconnect();
                                             Log.i("UPDATE.receiver", "ACK!");
                                             return;
@@ -478,7 +474,7 @@ public class ControllerService extends Service {
 
                                         setModel(model);
 
-                                        //robotsAsBTDevices.clear();
+                                        robotsAsBTDevices.clear();
                                         currConnectedDevice.disconnect();
                                     } catch (JSONException ex) {
                                         Log.e("UPDATE.receiver", "Failed to convert to JSON");
@@ -555,6 +551,10 @@ public class ControllerService extends Service {
         }
 
         unregisterReceiver(receiver);
+
+        if (readNotifications != null) {
+            readNotifications.close();
+        }
 
         // cleaning up
         btAdapter = null;
@@ -960,11 +960,9 @@ public class ControllerService extends Service {
     private class TransferStatusReview extends Thread {
 
         private boolean keepAlive;
-        private BluetoothGattCharacteristic characteristic;
         long transferTimeStamp;
 
-        public TransferStatusReview(BluetoothGattCharacteristic characteristic) {
-            this.characteristic = characteristic;
+        public TransferStatusReview() {
             keepAlive = true;
         }
 
@@ -1072,7 +1070,33 @@ public class ControllerService extends Service {
                 for (BluetoothGattCharacteristic chara : charList) {
                     String uuidOfCharacteristic = chara.getUuid().toString();
 
+
                     if (supportedCharas.containsKey(uuidOfCharacteristic)) {
+                        // checking if characteristic supports notification or indication (one or the other)
+                        if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+
+                            //enable notifications
+                            subscribe(chara, true, 0, gatt);
+
+                            try {
+                                makeRobotBlock.take();
+                            } catch (InterruptedException ex) {
+                                Log.e("makeRobot()", "failed to take from blocking queue");
+                            }
+
+                        } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+
+                            //enable indications
+                            subscribe(chara, true, 1, gatt);
+
+                            try {
+                                makeRobotBlock.take();
+                            } catch (InterruptedException ex) {
+                                Log.e("makeRobot()", "failed to take from blocking queue");
+                            }
+                        }
+
+
                         boolean canBeRead = false;
                         // Attempt to read this characteristic
                         if (gatt.readCharacteristic(chara)) {
@@ -1084,25 +1108,6 @@ public class ControllerService extends Service {
                             }
                         }
 
-                        if (canBeRead) {
-                            // checking if characteristic supports notification or indication (one or the other)
-                            if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
-
-                                //enable notifications
-                                subscribe(chara, true, 0, gatt);
-
-                                try {
-                                    makeRobotBlock.take();
-                                } catch (InterruptedException ex) {
-                                    Log.e("makeRobot()", "failed to take from blocking queue");
-                                }
-
-                            } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
-
-                                //enable indications
-                                subscribe(chara, true, 1, gatt);
-                            }
-                        }
 
                         if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
                             totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
@@ -1191,6 +1196,9 @@ public class ControllerService extends Service {
         modelLock.lock();
         model.add(robot);
         modelLock.unlock();
+        // thread for reading notifications
+        readNotifications = new ReadNotifications();
+        readNotifications.start();
         Log.i("Controller.makeRobot()", "Finished");
     }
     /**
@@ -1251,7 +1259,7 @@ public class ControllerService extends Service {
             // grabbing initial value in characteristic which says how many packets total
             // there are to be sent
             int totalNumOfPackets = java.nio.ByteBuffer.wrap(chara.getValue()).getInt();
-
+            Log.i("getCharaValue", ((Integer)totalNumOfPackets).toString());
             // initialize map with correct number of packets wanted
             if (totalNumOfPackets >= 128) {
 
@@ -1266,7 +1274,7 @@ public class ControllerService extends Service {
                 }
             }
 
-            return totalNumOfPackets + "";
+            return ((Integer)totalNumOfPackets).toString();
 
         } else if (chara.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0) == 128) {
 
@@ -1281,50 +1289,83 @@ public class ControllerService extends Service {
     }
 
 
-    private void getUpdate(BluetoothGattCharacteristic characteristic) {
+    private class ReadNotifications extends Thread {
+        private boolean keepAlive = true;
 
-        // getting new value in characteristic after initial read
-        byte rawPacket[] = characteristic.getValue();
+        @Override
+        public void run() {
 
-        // getting missing packet flag value
-        int missingFlag = (rawPacket[0] & 0x80);
+            while (keepAlive) {
 
-        //
-        if ((missingFlag == 128 && awaitingMissedPackets) ||
-                missingFlag == 0 && !awaitingMissedPackets) {
+                notificationQueueLock.lock();
+
+                while (notificationQueue.isEmpty() && keepAlive) {
+                    try {
+                        notificationQueueLock.unlock();
+                        sleep(100);
+                        notificationQueueLock.lock();
+                    } catch (Exception ex) {
+                        Log.e("Controller.Read", "Failed sleep");
+                    }
+                }
+
+                if (keepAlive) {
+
+                    // update time stamp
+                    notifyTimeStamp = System.currentTimeMillis();
+
+                    // take lock - this characteristic is sending an update
+                    transferLock.lock();
+
+                    // check if our transfer review is off
+                    if (statusReviewOff) {
+                        // turn it on
+                        statusReview = new TransferStatusReview();
+                        statusReview.start();
+                        statusReviewOff = false;
+                    }
+
+                    byte rawPacket[] = notificationQueue.remove(0);
+                    notificationQueueLock.unlock();
+
+                    // getting missing packet flag value
+                    int missingFlag = (rawPacket[0] & 0x80);
+
+                    //
+                    if ((missingFlag == 128 && awaitingMissedPackets) ||
+                            missingFlag == 0 && !awaitingMissedPackets) {
 
 
-            // getting packet number data
-            int packetNum = (rawPacket[0] & 0x7F);
+                        // getting packet number data
+                        int packetNum = (rawPacket[0] & 0x7F);
 
-            //testTotal += 1;
-            //Log.i("getUpdate()", "Packet number: " + packetNum);
-            //Log.i("getUpdate()", "Running Total: " + testTotal);
+                        //testTotal += 1;
+                        Log.i("getUpdate()", "Packet number: " + packetNum);
+                        Log.i("getUpdate()", "Num Left: " + totalNumOfPackets);
+                        // getting json data
+                        byte json[] = new byte[rawPacket.length - 1];
+                        System.arraycopy(rawPacket, 1, json, 0, (rawPacket.length - 1));
 
-            // getting json data
-            byte json[] = new byte[rawPacket.length - 1];
-            System.arraycopy(rawPacket, 1, json, 0, (rawPacket.length - 1));
+                        packetsFound.put(packetNum, new String(json));
+                        Log.i("getUpdate()", new String(json));
+                        // check to see if all packets in current wave are buffered
+                        if (!packetsFound.containsValue("")) {
+                            // set awaitingMissedPackets to false
+                            awaitingMissedPackets = false;
 
-            packetsFound.put(packetNum, new String(json));
+                            //Log.i("getUpdate()", "no null found");
 
-            // check to see if all packets in current wave are buffered
-            if (!packetsFound.containsValue("")) {
-                // set awaitingMissedPackets to false
-                awaitingMissedPackets = false;
+                            // if here then all packets have been found
+                            // start appending strJSON
 
-                //Log.i("getUpdate()", "no null found");
+                            //Log.i("getUpdate()", "size: " + packetsFound.size());
 
-                // if here then all packets have been found
-                // start appending strJSON
+                            for (Integer i = 0; i < packetsFound.size(); i++) {
 
-                //Log.i("getUpdate()", "size: " + packetsFound.size());
-
-                for (Integer i = 0; i < packetsFound.size(); i++) {
-
-                    // quick fix to check for interesting null packets
-                    //if (packetsFound.get(i).equals("")) {
-                    //continue;
-                    //}
+                                // quick fix to check for interesting null packets
+                                //if (packetsFound.get(i).equals("")) {
+                                //continue;
+                                //}
 
                     /*
                     //if stringJPEG contains no textual content of characteristic yet
@@ -1355,60 +1396,71 @@ public class ControllerService extends Service {
                     }
                     */
 
-                    if (null == strJSON) {
-                        strJSON = packetsFound.get(i);
-                    } else {
-                        strJSON += packetsFound.get(i);
+                                if (null == strJSON) {
+                                    strJSON = packetsFound.get(i);
+                                } else {
+                                    strJSON += packetsFound.get(i);
+                                }
+                                Log.i("json", strJSON);
+                            }
+
+                            // using RobotCharacteristic's charaValue to keep track of how many packets are left
+                            // note: there is no writing to the characteristic and the value stored is local
+                            // **there is a smarter more efficient way**
+                            //int totalPacketsLeft = Integer.parseInt(robot.getRobotCharacteristic(characteristic).getCharaValue());
+                            // totalPacketsLeft = (totalPacketsLeft - packetsFound.size());
+                            // robot.getRobotCharacteristic(characteristic).setCharaValue(totalPacketsLeft + "");
+                            // writing to service to let it know all packets have been received
+
+                            byte[] successMessage = new byte[20];
+                            String bitString = "0"; // indicates success
+                            successMessage[0] = (byte) Integer.parseInt(bitString, 2);
+
+                            missingPacketWrite.setValue(successMessage);
+
+                            currConnectedDevice.writeCharacteristic(missingPacketWrite);
+
+                            totalNumOfPackets = (totalNumOfPackets - packetsFound.size());
+
+                            // set up map with correct number of packets wanted
+                            packetsFound.clear();
+                            if (totalNumOfPackets >= 128) {
+
+                                for (int i = 0; i < 128; i++) {
+                                    packetsFound.put(i, "");
+                                }
+
+                            } else if (totalNumOfPackets == 0) {
+
+                                //Log.i("getUpdate()", "Ended JSON string");
+                                //Log.i("json", strJSON);
+                                statusReview.close();
+                                close();
+                                notificationQueue.clear();
+                                sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
+                            } else {
+
+                                for (int i = 0; i < totalNumOfPackets; i++) {
+                                    packetsFound.put(i, "");
+                                }
+                            }
+
+                        }
                     }
+
+                    // release lock
+                    transferLock.unlock();
                 }
+            }
 
-                // using RobotCharacteristic's charaValue to keep track of how many packets are left
-                // note: there is no writing to the characteristic and the value stored is local
-                // **there is a smarter more efficient way**
-                //int totalPacketsLeft = Integer.parseInt(robot.getRobotCharacteristic(characteristic).getCharaValue());
-               // totalPacketsLeft = (totalPacketsLeft - packetsFound.size());
-               // robot.getRobotCharacteristic(characteristic).setCharaValue(totalPacketsLeft + "");
-                totalNumOfPackets = (totalNumOfPackets - packetsFound.size());
-
-                // set up map with correct number of packets wanted
-                packetsFound.clear();
-                if (totalNumOfPackets >= 128) {
-
-                    for (int i = 0; i < 128; i++) {
-                        packetsFound.put(i, "");
-                    }
-
-                } else if (totalNumOfPackets == 0) {
-
-                    //Log.i("getUpdate()", "Ended JSON string");
-                    //Log.i("json", strJSON);
-                    statusReview.close();
-                    sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
-
-                } else {
-
-                    for (int i = 0; i < totalNumOfPackets; i++) {
-                        packetsFound.put(i, "");
-                    }
-                }
-
-                // writing to service to let it know all packets have been received
-
-                byte[] successMessage = new byte[20];
-                String bitString = "0"; // indicates success
-                successMessage[0] = (byte) Integer.parseInt(bitString, 2);
-
-                missingPacketWrite.setValue(successMessage);
-
-                currConnectedDevice.writeCharacteristic(missingPacketWrite);
-
-                //Log.i("getUpdate()", strJSON );
+            if (notificationQueueLock.isLocked()) {
+                notificationQueueLock.unlock();
             }
         }
 
-        // release lock
-        transferLock.unlock();
-        //Log.i("getUpdate()", "null found");
+        public void close() {
+            keepAlive = false;
+        }
     }
 
 
