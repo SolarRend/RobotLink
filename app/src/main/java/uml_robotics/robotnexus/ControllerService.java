@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -86,6 +88,8 @@ public class ControllerService extends Service {
     private ArrayList<byte[]> notificationQueue = null; // queue for holding notification values
     private ReentrantLock notificationQueueLock = null; // lock for accessing queue
     private ReadNotifications readNotifications; // thread responsible for reading notifications
+    // used to ensure all robots in vicinity get updated once
+    private RobotUpdateClock robotUpdateClock;
 
     /*
      * characteristics/values of our currently connected robot
@@ -186,6 +190,9 @@ public class ControllerService extends Service {
                 // Lock for notification queue
                 notificationQueueLock = new ReentrantLock();
 
+                // update clock
+                robotUpdateClock = new RobotUpdateClock();
+
                 // create job queue for scan callbacks
                 //scanCallbackPackages = new ArrayList<ScanCallbackPackage>();
 
@@ -248,6 +255,11 @@ public class ControllerService extends Service {
                                         if (!statusReviewOff) {
                                             statusReview.close();
                                             statusReview = null;
+                                        }
+
+                                        // end notification read (safety if we disconnect during transfer)
+                                        if (readNotifications != null) {
+                                            readNotifications.close();
                                         }
 
                                         //**DEMO** end tracking of robot proximity
@@ -468,8 +480,10 @@ public class ControllerService extends Service {
 
                                         if (jsonStatus.getString("msgtype").equals("ack")) {
                                             // no update
+                                            modelLock.lock();
                                             setModel(model);
-                                            robotsAsBTDevices.clear();
+                                            modelLock.unlock();
+                                            //robotsAsBTDevices.clear();
                                             currConnectedDevice.disconnect();
                                             Log.i("UPDATE.receiver", "ACK!");
                                             return;
@@ -485,11 +499,10 @@ public class ControllerService extends Service {
                                             }
                                         }
 
+                                        setModel(model);
                                         modelLock.unlock();
 
-                                        setModel(model);
-
-                                        robotsAsBTDevices.clear();
+                                        //robotsAsBTDevices.clear();
                                         currConnectedDevice.disconnect();
                                     } catch (JSONException ex) {
                                         Log.e("UPDATE.receiver", "Failed to convert to JSON");
@@ -568,9 +581,17 @@ public class ControllerService extends Service {
 
         unregisterReceiver(receiver);
 
+
+        // end transfer review if app is closed during transfer process
+        if (!statusReviewOff) {
+            statusReview.close();
+        }
+
+        // end notification read thread if app is closed during transfer process
         if (readNotifications != null) {
             readNotifications.close();
         }
+
 
         // cleaning up
         btAdapter = null;
@@ -601,7 +622,6 @@ public class ControllerService extends Service {
             Looper.loop();
         }
     }
-
 
     /**
      * instances help enqueueing scan callback jobs
@@ -685,6 +705,7 @@ public class ControllerService extends Service {
             if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
                 //DeviceUtilities item = new DeviceUtilities(device, rssi);
                 robotsAsBTDevices.put(device, rssi);
+                robotUpdateClock.restartTimer();
                 //initial connection
                 connect(device);
             } else {
@@ -696,8 +717,20 @@ public class ControllerService extends Service {
 
             Log.i(TAG, "Heard one of our robots");
 
-            // update rssi
-            robotsAsBTDevices.put(device, rssi);
+            // update proximity
+            modelLock.lock();
+            model = getModel();
+            // check if current robot is already in our model
+            for (Robot bot : model) {
+                if (bot.getId().equals(device.getAddress())) {
+                    bot.setProximity(rssi);
+                    model.set(model.indexOf(bot), (Robot)bot.clone());
+                    break;
+                }
+            }
+            setModel(model);
+            modelLock.unlock();
+
 
             /*
             // update rssi values
@@ -876,8 +909,6 @@ public class ControllerService extends Service {
         return result;
 
     }
-
-
 
     /**
      * stops scanning and connects to passed device
@@ -1213,8 +1244,8 @@ public class ControllerService extends Service {
 
         // says if robot is already known to the model
         boolean alreadyContained = false;
-        model = getModel();
         modelLock.lock();
+        model = getModel();
         // check if current robot is already in our model
         for (Robot bot : model) {
             if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
@@ -1282,9 +1313,6 @@ public class ControllerService extends Service {
         //write descriptor - received in callback onDescriptorWrite
         gatt.writeDescriptor(characteristic.getDescriptor(descripUuid));
     }
-
-
-
     /**
      * **useful for initial reads**
      * checks format types to determine how to interpret the characteristic's value
@@ -1328,7 +1356,9 @@ public class ControllerService extends Service {
         }
     }
 
-
+    /**
+     * thread responsible for handling notifications
+     */
     private class ReadNotifications extends Thread {
 
         private boolean keepAlive = true;
@@ -1507,6 +1537,37 @@ public class ControllerService extends Service {
         }
     }
 
+
+    /**
+     * class responsible for making sure all robots in area get updated
+     * by clearing robotsAsBTDevices.
+     */
+
+    private class RobotUpdateClock {
+        //timer object
+        private Timer timer;
+
+        public RobotUpdateClock() {
+            timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    robotsAsBTDevices.clear();
+                }
+            }, 3000);
+        }
+
+        public void restartTimer() {
+            timer.cancel();
+            timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    robotsAsBTDevices.clear();
+                }
+            }, 3000);
+        }
+    }
 
     /**
      * **************************************
