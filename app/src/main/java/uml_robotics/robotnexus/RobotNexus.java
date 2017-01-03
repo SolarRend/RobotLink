@@ -81,30 +81,33 @@ public class RobotNexus extends AppCompatActivity {
 
                 // if our models don't match up
                 if (!(modelPrime.containsAll(model) && model.containsAll(modelPrime))) {
-                    model = new ArrayList<>(modelPrime);
+
+                    model = ControllerService.getModel();
                     Log.i("RobotNexus.ModelUpdate", "Model changed");
+
                     displayAdapter = new ArrayAdapter<>(RobotNexus.this, R.layout.text_resource);
                     for (Robot robot : model) {
                         displayAdapter.add(robot);
                     }
-                    final Bitmap image = model.get(0).getImage();
+                    //final Bitmap image = model.get(0).getImage();
                     robotNexusHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             ListView listView = (ListView) findViewById(R.id.robot_list);
                             listView.setAdapter(displayAdapter);
-                            ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                            imageView.setImageBitmap(image);
                             displayAdapter.notifyDataSetChanged();
-                            Toast.makeText(RobotNexus.this, "Update", Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(RobotNexus.this, "Update", Toast.LENGTH_SHORT).show();
                         }
                     });
+
                 }
+
                 try {
-                    sleep(200);
+                    sleep(300);
                 } catch (InterruptedException ex) {
 
                 }
+
             }
         }
 

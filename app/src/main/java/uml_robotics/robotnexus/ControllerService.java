@@ -67,7 +67,7 @@ public class ControllerService extends Service {
     // used in makeRobot() for reading characteristics and
     // stopping from finishing until descriptor has been written (because image sends after read request)
     private BlockingQueue<Integer> makeRobotBlock = null;
-    // lock for sequencing statusReview and getUpdate()
+    // lock for sequencing statusReview and readNotifications
     private ReentrantLock transferLock;
     // queue for scan callbacks
     //private ArrayList<ScanCallbackPackage> scanCallbackPackages;
@@ -267,11 +267,11 @@ public class ControllerService extends Service {
 
                                         // safety-net
                                         if (btAdapter != null) {
-                                            try {
-                                                sleep(10000);
-                                            } catch (Exception ex) {
+                                            //try {
+                                                //sleep(2000);
+                                            //} catch (Exception ex) {
 
-                                            }
+                                            //}
                                             //starting scan on service thread
                                             btAdapter.startLeScan(leCallback);
                                             isScanning = true;
@@ -336,20 +336,17 @@ public class ControllerService extends Service {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             //finished reading so add our characteristic to the blocking queue
                             makeRobotBlock.add(1);
-                            Log.i("onCharacteristicRead", "finished reading");
-                            Log.i("onCharacteristicRead",
-                                    java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt() + "");
-                            Log.i("onCharacteristicRead", supportedCharas.get(characteristic.getUuid().toString()));
+                            //Log.i("onCharacteristicRead", "finished reading");
+                            //Log.i("onCharacteristicRead",
+                                    //java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt() + "");
+                            //Log.i("onCharacteristicRead", supportedCharas.get(characteristic.getUuid().toString()));
                             totalNumOfPackets = java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt();
                             // initialize map with correct number of packets wanted
                             if (totalNumOfPackets >= 128) {
-
                                 for (int i = 0; i < 128; i++) {
                                     packetsFound.put(i, "");
                                 }
-
                             } else {
-
                                 for (int i = 0; i < totalNumOfPackets; i++) {
                                     packetsFound.put(i, "");
                                 }
@@ -471,29 +468,23 @@ public class ControllerService extends Service {
 
                                         if (jsonStatus.getString("msgtype").equals("ack")) {
                                             // no update
+                                            setModel(model);
                                             robotsAsBTDevices.clear();
                                             currConnectedDevice.disconnect();
                                             Log.i("UPDATE.receiver", "ACK!");
                                             return;
                                         }
 
-                                        Robot robot = null;
                                         modelLock.lock();
                                         for (Robot bot : model) {
                                             if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
-                                                robot = bot;
+                                                bot.setName(jsonStatus.getString("name"));
+                                                bot.setCurrState(jsonStatus.getString("state"));
+                                                bot.setModel(jsonStatus.getString("model"));
                                                 break;
                                             }
                                         }
-                                        int index = model.indexOf(robot);
-                                        modelLock.unlock();
 
-                                        robot.setName(jsonStatus.getString("name"));
-                                        robot.setCurrState(jsonStatus.getString("state"));
-                                        robot.setModel(jsonStatus.getString("model"));
-
-                                        modelLock.lock();
-                                        model.set(index, robot);
                                         modelLock.unlock();
 
                                         setModel(model);
@@ -1080,11 +1071,7 @@ public class ControllerService extends Service {
 
         ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
 
-        ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) gatt.getServices();
-
-        // setting robot name, rssi (proximity) and ID
-        Robot robot = new Robot(robotsAsBTDevices.get(gatt.getDevice()),
-                gatt.getDevice().getAddress());
+        ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
 
         for (BluetoothGattService service : serviceList) {
 
@@ -1103,8 +1090,8 @@ public class ControllerService extends Service {
                         if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
 
                             //enable notifications
-                            subscribe(chara, true, 0, gatt);
-                            Log.i("makeRobot().not", supportedCharas.get(uuidOfCharacteristic));
+                            subscribe(chara, true, 0, currConnectedDevice);
+                            //Log.i("makeRobot().not", supportedCharas.get(uuidOfCharacteristic));
                             try {
                                 makeRobotBlock.take();
                             } catch (InterruptedException ex) {
@@ -1114,8 +1101,8 @@ public class ControllerService extends Service {
                         } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
 
                             //enable indications
-                            subscribe(chara, true, 1, gatt);
-                            Log.i("makeRobot().ind", supportedCharas.get(uuidOfCharacteristic));
+                            subscribe(chara, true, 1, currConnectedDevice);
+                            //Log.i("makeRobot().ind", supportedCharas.get(uuidOfCharacteristic));
                             try {
                                 makeRobotBlock.take();
                             } catch (InterruptedException ex) {
@@ -1134,7 +1121,7 @@ public class ControllerService extends Service {
             String uuidOfCharacteristic = chara.getUuid().toString();
 
             // Attempt to read this characteristic
-            if (gatt.readCharacteristic(chara)) {
+            if (currConnectedDevice.readCharacteristic(chara)) {
                 try {
                     makeRobotBlock.take();
                 } catch (Exception ex) {
@@ -1143,10 +1130,7 @@ public class ControllerService extends Service {
             }
 
 
-            if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
-                //totalNumOfPackets = Integer.parseInt(getCharaValue(chara));
-                Log.i("makeRobot()", "Found Packet Read:" + (uuidOfCharacteristic));
-            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+            if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
                 missingPacketWrite = chara;
             }
             //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
@@ -1226,9 +1210,32 @@ public class ControllerService extends Service {
             );
         }
         */
+
+        // says if robot is already known to the model
+        boolean alreadyContained = false;
+        model = getModel();
         modelLock.lock();
-        model.add(robot);
+        // check if current robot is already in our model
+        for (Robot bot : model) {
+            if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
+                bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
+                model.set(model.indexOf(bot), (Robot)bot.clone());
+                alreadyContained = true;
+                break;
+            }
+        }
         modelLock.unlock();
+
+        if (!alreadyContained) {
+            // this is a new robot
+            // setting robot name, rssi (proximity) and ID
+            Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
+                    currConnectedDevice.getDevice().getAddress());
+            modelLock.lock();
+            model.add(robot);
+            modelLock.unlock();
+        }
+
         // thread for reading notifications
         readNotifications = new ReadNotifications();
         readNotifications.start();
@@ -1374,25 +1381,25 @@ public class ControllerService extends Service {
                         int packetNum = (rawPacket[0] & 0x7F);
 
                         //testTotal += 1;
-                        Log.i("getUpdate()", "Packet number: " + packetNum);
-                        Log.i("getUpdate()", "Num Left: " + totalNumOfPackets);
+                        Log.i("Controller.Read", "Packet number: " + packetNum);
+                        Log.i("Controller.Read", "Total Number of Packets: " + totalNumOfPackets);
                         // getting json data
                         byte json[] = new byte[rawPacket.length - 1];
                         System.arraycopy(rawPacket, 1, json, 0, (rawPacket.length - 1));
 
                         packetsFound.put(packetNum, new String(json));
-                        Log.i("getUpdate()", new String(json));
+
                         // check to see if all packets in current wave are buffered
                         if (!packetsFound.containsValue("")) {
                             // set awaitingMissedPackets to false
                             awaitingMissedPackets = false;
 
-                            //Log.i("getUpdate()", "no null found");
+                            //Log.i("Controller.Read", "no null found");
 
                             // if here then all packets have been found
                             // start appending strJSON
 
-                            //Log.i("getUpdate()", "size: " + packetsFound.size());
+                            //Log.i("Controller.Read", "size: " + packetsFound.size());
 
                             for (Integer i = 0; i < packetsFound.size(); i++) {
 
@@ -1435,7 +1442,7 @@ public class ControllerService extends Service {
                                 } else {
                                     strJSON += packetsFound.get(i);
                                 }
-                                Log.i("json", strJSON);
+                                Log.i("Controller.Read", strJSON);
                             }
 
                             // using RobotCharacteristic's charaValue to keep track of how many packets are left
@@ -1468,7 +1475,7 @@ public class ControllerService extends Service {
 
                             } else if (totalNumOfPackets == 0) {
 
-                                //Log.i("getUpdate()", "Ended JSON string");
+                                //Log.i("Controller.Read", "Ended JSON string");
                                 //Log.i("json", strJSON);
                                 statusReview.close();
                                 close();

@@ -8,7 +8,7 @@ import android.graphics.Bitmap;
 
 
 public class Robot {
-    public enum State {ok, safe, help, dangerous, off} // a robot is in one of these states at all times
+    public enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
     private String name; // name of robot
     private Bitmap image; // image a robot may want to transfer
     private boolean dismissed = false; // for dismissed robots
@@ -21,6 +21,15 @@ public class Robot {
     public Robot(int rssi, String id) {
         this.proximity = rssi;
         this.id = id;
+        this.currState = State.NOT_SET;
+    }
+
+    public void setProximity(int proximity) {
+        this.proximity = proximity;
+    }
+
+    public int getProximity() {
+        return proximity;
     }
 
     public void setModel(String model) {
@@ -57,6 +66,35 @@ public class Robot {
 
     public String getId() {
         return id;
+    }
+
+    // how to compare robots to each other
+    @Override
+    public boolean equals(Object robot) {
+        Robot robotPrime = (Robot)robot;
+        Robot robotSelf = this;
+
+        if (!(robotSelf.getId().equals(robotPrime.getId()))) {
+            return false;
+        }
+        if (robotSelf.getProximity() != robotPrime.getProximity()) {
+            return false;
+        }
+        if (!(robotSelf.getCurrState().equals(robotPrime.getCurrState()))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // returns contents of a complete robot
+    @Override
+    public Object clone() {
+        Robot robot = new Robot(this.getProximity(), this.getId());
+        robot.setName(this.getName());
+        robot.setCurrState(this.getCurrState());
+        robot.setModel(this.getModel());
+        return robot;
     }
 
     @Override
