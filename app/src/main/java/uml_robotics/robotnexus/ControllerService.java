@@ -72,7 +72,9 @@ public class ControllerService extends Service {
     // lock for sequencing statusReview and readNotifications
     private ReentrantLock transferLock;
     // queue for scan callbacks
-    //private ArrayList<ScanCallbackPackage> scanCallbackPackages;
+    private ArrayList<ScanCallbackPackage> scanCallbackPackages;
+    private ReentrantLock scanCallbackPackagesLock = null; // lock for accessing package queue
+    private HandleScanCallbacks handleScanCallbacks; // thread responsible for handling scan callbacks
     // boolean for stating if we're connected to a robot or not
     private boolean isConnected = false;
     private BluetoothGatt currConnectedDevice = null; //current device we are connected to
@@ -190,11 +192,18 @@ public class ControllerService extends Service {
                 // Lock for notification queue
                 notificationQueueLock = new ReentrantLock();
 
-                // update clock
+                // clock to ensure all robots get updated
                 robotUpdateClock = new RobotUpdateClock();
 
                 // create job queue for scan callbacks
-                //scanCallbackPackages = new ArrayList<ScanCallbackPackage>();
+                scanCallbackPackages = new ArrayList<ScanCallbackPackage>();
+
+                //lock for accessing scanCallbackPackages
+                scanCallbackPackagesLock = new ReentrantLock();
+
+                // start up handler thread for scan callbacks
+                handleScanCallbacks = new HandleScanCallbacks();
+                handleScanCallbacks.start();
 
                 // implementing callback for startLeScan()
                 leCallback = new BluetoothAdapter.LeScanCallback() {
@@ -205,15 +214,17 @@ public class ControllerService extends Service {
 
                         //Log.i("leCallback", "Start");
 
+                        scanCallbackPackagesLock.lock();
                         //enqueue job for handleScanCallback to work with
-                        //scanCallbackPackages.add(new ScanCallbackPackage(device, rssi, scanRecord));
+                        scanCallbackPackages.add(new ScanCallbackPackage(device, rssi, scanRecord));
+                        scanCallbackPackagesLock.unlock();
                         // get on service thread
-                        serviceHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                handleScanCallback(device, rssi, scanRecord);
-                            }
-                        });
+                        //serviceHandler.post(new Runnable() {
+                            //@Override
+                            //public void run() {
+                               // handleScanCallback(device, rssi, scanRecord);
+                           // }
+                        //});
                     }
                 };
 
@@ -592,6 +603,7 @@ public class ControllerService extends Service {
             readNotifications.close();
         }
 
+        handleScanCallbacks.close();
 
         // cleaning up
         btAdapter = null;
@@ -624,7 +636,7 @@ public class ControllerService extends Service {
     }
 
     /**
-     * instances help enqueueing scan callback jobs
+     * instances help enqueue scan callback jobs
      */
     private class ScanCallbackPackage {
         private BluetoothDevice device;
@@ -651,85 +663,108 @@ public class ControllerService extends Service {
     }
 
     /**
-     * Worker method for handling both leCallback and scanCallback
-     *
-     * @param device     is the bt device that triggered the callback
-     * @param rssi       is the signal strength value of the advertisement
-     * @param scanRecord is the payload
+     * thread responsible for handling leCallback packages
      */
-    private void handleScanCallback(final BluetoothDevice device, final int rssi,
-                                        final byte[] scanRecord) {
-        final String TAG = "handleScanCallback()";
+    private class HandleScanCallbacks extends Thread {
+        final String TAG = "Controller.Callbacks";
+        private boolean keepAlive = true;
 
-        // safety-net : if uuid is null then app should not proceed.
-        if (uuidOfInterest == null) {
-            Log.i(TAG, "Called when uuidOfInterest is null");
-            try {
-                (Looper.myLooper()).getThread().sleep(200);
-                Thread.currentThread().interrupt();
-            } catch (InterruptedException ex) {
-                Log.i(TAG, "Failed to sleep or interrupt");
-            }
-            return;
-        }
+        @Override
+        public void run() {
+            while (keepAlive) {
 
-        // If device has been added to rejected list then go no further.
-        if (rejectedDeviceList.contains(device)) {
-            //Log.i(TAG, "Rejected " + device.getAddress());
-            return;
-        }
+                scanCallbackPackagesLock.lock();
 
-        // so this robot won't be added to robotsAsBTDevices without connecting
-        if (isConnected) {
-            return;
-        }
+                while (scanCallbackPackages.isEmpty() && keepAlive) {
+                    scanCallbackPackagesLock.unlock();
+                    try {
+                        //Log.i(TAG, "About to sleep");
+                        sleep(200);
+                    } catch (Exception ex) {
 
-        // handling dismissed robots
-        // if there's a dismissed robot that has the same bt device in callback then restart the
-        // dismissedRobot's timer
-        //for (DismissedRobot dismissedRobot : dismissedList) {
-            //if (dismissedRobot.getBluetoothDevice().equals(device)) {
-                //Log.i(TAG, "found dismissed robot");
-                //dismissedRobot.restartTimer();
-                //return;
-            //}
-        //}
-
-        if (!robotsAsBTDevices.containsKey(device)) {
-
-            List<String> listOfStructures = parseScanRecord(scanRecord);
-            //for (String s : listOfStructures) {
-            //Log.i("leCallBack", s);
-            //}
-
-            if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
-                //DeviceUtilities item = new DeviceUtilities(device, rssi);
-                robotsAsBTDevices.put(device, rssi);
-                robotUpdateClock.restartTimer();
-                //initial connection
-                connect(device);
-            } else {
-                // Add to rejected list
-                rejectedDeviceList.add(device);
-            }
-
-        } else { //this is one of our robots
-
-            Log.i(TAG, "Heard one of our robots");
-
-            // update proximity
-            modelLock.lock();
-            model = getModel();
-            // check if current robot is already in our model
-            for (Robot bot : model) {
-                if (bot.getId().equals(device.getAddress())) {
-                    bot.setProximity(rssi);
-                    model.set(model.indexOf(bot), (Robot)bot.clone());
-                    break;
+                    }
+                    scanCallbackPackagesLock.lock();
                 }
-            }
-            setModel(model);
-            modelLock.unlock();
+
+                if (keepAlive) {
+
+                    ScanCallbackPackage callbackPackage = scanCallbackPackages.remove(0);
+                    scanCallbackPackagesLock.unlock();
+
+                    BluetoothDevice device = callbackPackage.getDevice();
+                    int rssi = callbackPackage.getRssi();
+                    byte scanRecord[] = callbackPackage.getScanRecord();
+
+                    // safety-net : if uuid is null then app should not proceed.
+                    if (uuidOfInterest == null) {
+                        Log.i(TAG, "Called when uuidOfInterest is null");
+                        try {
+                            (Looper.myLooper()).getThread().sleep(200);
+                            Thread.currentThread().interrupt();
+                        } catch (InterruptedException ex) {
+                            Log.i(TAG, "Failed to sleep or interrupt");
+                        }
+                        return;
+                    }
+
+                    // If device has been added to rejected list then go no further.
+                    if (rejectedDeviceList.contains(device)) {
+                        //Log.i(TAG, "Rejected " + device.getAddress());
+                        continue;
+                    }
+
+                    // so this robot won't be added to robotsAsBTDevices without connecting
+                    if (isConnected) {
+                        scanCallbackPackages.clear();
+                        continue;
+                    }
+
+                    // handling dismissed robots
+                    // if there's a dismissed robot that has the same bt device in callback then restart the
+                    // dismissedRobot's timer
+                    //for (DismissedRobot dismissedRobot : dismissedList) {
+                    //if (dismissedRobot.getBluetoothDevice().equals(device)) {
+                    //Log.i(TAG, "found dismissed robot");
+                    //dismissedRobot.restartTimer();
+                    //return;
+                    //}
+                    //}
+
+                    if (!robotsAsBTDevices.containsKey(device)) {
+
+                        List<String> listOfStructures = parseScanRecord(scanRecord);
+                        //for (String s : listOfStructures) {
+                        //Log.i("leCallBack", s);
+                        //}
+
+                        if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
+                            //DeviceUtilities item = new DeviceUtilities(device, rssi);
+                            robotsAsBTDevices.put(device, rssi);
+                            robotUpdateClock.restartTimer();
+                            //initial connection
+                            connect(device);
+                        } else {
+                            // Add to rejected list
+                            rejectedDeviceList.add(device);
+                        }
+
+                    } else { //this is one of our robots
+
+                        //Log.i(TAG, "Heard one of our robots");
+
+                        // update proximity
+                        modelLock.lock();
+                        model = getModel();
+                        // check if current robot is already in our model
+                        for (Robot bot : model) {
+                            if (bot.getId().equals(device.getAddress())) {
+                                bot.setProximity(rssi);
+                                model.set(model.indexOf(bot), (Robot) bot.clone());
+                                break;
+                            }
+                        }
+                        setModel(model);
+                        modelLock.unlock();
 
 
             /*
@@ -761,6 +796,17 @@ public class ControllerService extends Service {
                     break;
                 }
             }*/
+                    }
+                }
+            }
+
+            if (scanCallbackPackagesLock.isHeldByCurrentThread()) {
+                scanCallbackPackagesLock.unlock();
+            }
+        }
+
+        public void close() {
+            keepAlive = false;
         }
     }
 
@@ -918,6 +964,7 @@ public class ControllerService extends Service {
         //stop scanning
         if (isScanning) {
             btAdapter.stopLeScan(leCallback);
+            isScanning = false;
         }
 
         // if we're already connected get out
@@ -935,6 +982,8 @@ public class ControllerService extends Service {
         } catch (Exception ex) {
             Log.i("Controller.connect()", "failed connection");
         }
+        // clear queue of callback packages
+        scanCallbackPackages.clear();
 
         isConnected = true;
 
@@ -1371,13 +1420,13 @@ public class ControllerService extends Service {
                 notificationQueueLock.lock();
 
                 while (notificationQueue.isEmpty() && keepAlive) {
+                    notificationQueueLock.unlock();
                     try {
-                        notificationQueueLock.unlock();
                         sleep(100);
-                        notificationQueueLock.lock();
                     } catch (Exception ex) {
                         Log.e("Controller.Read", "Failed sleep");
                     }
+                    notificationQueueLock.lock();
                 }
 
                 if (keepAlive) {

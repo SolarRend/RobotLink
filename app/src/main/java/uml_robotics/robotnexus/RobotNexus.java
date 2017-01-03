@@ -63,11 +63,16 @@ public class RobotNexus extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        modelUpdate.close();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // end our update
         modelUpdate.close();
-        robotNexusHandler = null;
     }
 
     private class ModelUpdate extends Thread {
