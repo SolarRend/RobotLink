@@ -92,6 +92,8 @@ public class ControllerService extends Service {
     private ReadNotifications readNotifications; // thread responsible for reading notifications
     // used to ensure all robots in vicinity get updated once
     private RobotUpdateClock robotUpdateClock;
+    private BlockingQueue<Integer> characteristicWriteBlock = null;
+
 
     /*
      * characteristics/values of our currently connected robot
@@ -176,9 +178,11 @@ public class ControllerService extends Service {
                 // creating a lock for our transfer process
                 transferLock = new ReentrantLock();
 
-                // creating a lock for scanning callback process
                 //instantiating block for notify completion wait
                 makeRobotBlock = new ArrayBlockingQueue<>(1);
+
+                //block for writing to server
+                characteristicWriteBlock = new ArrayBlockingQueue<Integer>(1);
 
                 // getting copy of model
                 model = getModel();
@@ -232,17 +236,66 @@ public class ControllerService extends Service {
                     @Override
                     public void onConnectionStateChange(final BluetoothGatt gatt,final int status, final int newState) {
 
+                        Log.i("onConnectionStateChange", "Status: " + status);
+                        Log.i("onConnectionStateChange", "newState: " + newState);
                         serviceHandler.post(new Runnable() {
                             @Override
                             public void run() {
+
+
+                                // if this connections is poor -> disconnect
+                                if (status == 133) {
+                                    Log.e("onConnect", "closing connection and restarting bluetooth");
+                                    Log.e("onConnect", "Status: " + status);
+                                    Log.e("onConnect", "newState: " + newState);
+                                    gatt.disconnect();
+                                    gatt.close();
+                                    currConnectedDevice = null;
+                                    isConnected = false;
+                                    // safety-net
+                                    if (btAdapter != null) {
+                                        // resetting BT
+                                        btAdapter.disable();
+                                        try {
+                                            sleep(5000);
+                                        } catch (Exception ex) {
+
+                                        }
+                                        btAdapter.enable();
+                                        onStartCommandSeparateThread();
+                                    }
+                                    return;
+
+                                }
 
                                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                                     if (status == BluetoothGatt.GATT_SUCCESS) {
 
                                         Log.i("onConnect", "Connected to " + (gatt.getDevice()).getName());
                                         currConnectedDevice = gatt;
-                                        gatt.discoverServices();
 
+                                        if (currConnectedDevice.discoverServices()) {
+
+                                        } else {
+                                            Log.e("onConnect", "Failed service discovery");
+                                            gatt.disconnect();
+                                            gatt.close();
+                                            currConnectedDevice = null;
+                                            isConnected = false;
+                                            // safety-net
+                                            if (btAdapter != null) {
+                                                // resetting BT
+                                                btAdapter.disable();
+                                                try {
+                                                    sleep(5000);
+                                                } catch (Exception ex) {
+
+                                                }
+                                                btAdapter.enable();
+                                                onStartCommandSeparateThread();
+                                            }
+                                            return;
+                                        }
                                     } else {
                                         Log.i("onConnect", "Failed connection with status = " + status);
                                     }
@@ -308,6 +361,7 @@ public class ControllerService extends Service {
 
                     @Override
                     public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
+                        Log.i("onServicesDiscovered", "Status: " + status);
 
                         serviceHandler.post(new Runnable() {
                             @Override
@@ -434,6 +488,7 @@ public class ControllerService extends Service {
                                                       int status) {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             Log.i("OnCharaWrite", "Successfully written");
+                            characteristicWriteBlock.add(1);
                         }
                     }
                 };
@@ -542,14 +597,14 @@ public class ControllerService extends Service {
         serviceHandler.post(new Runnable() {
             @Override
             public void run() {
-                onStartCommandSeparateThread(intent, flags, startId);
+                onStartCommandSeparateThread();
             }
         });
 
         return Service.START_STICKY;
     }
 
-    private void onStartCommandSeparateThread(Intent intent, int flags, int startId) {
+    private void onStartCommandSeparateThread() {
         final String TAG = "onStartSeparateThread";
 
         // enabling bluetooth is not a blocking call so we need to make sure bt is on
@@ -753,6 +808,7 @@ public class ControllerService extends Service {
                         //Log.i(TAG, "Heard one of our robots");
 
                         // update proximity
+                        /*
                         modelLock.lock();
                         model = getModel();
                         // check if current robot is already in our model
@@ -765,6 +821,7 @@ public class ControllerService extends Service {
                         }
                         setModel(model);
                         modelLock.unlock();
+                        */
 
 
             /*
@@ -1406,7 +1463,7 @@ public class ControllerService extends Service {
     }
 
     /**
-     * thread responsible for handling notifications
+     * thread responsible for handling notifications from the queue
      */
     private class ReadNotifications extends Thread {
 
@@ -1540,8 +1597,6 @@ public class ControllerService extends Service {
                             missingPacketWrite.setValue(successMessage);
                             currConnectedDevice.writeCharacteristic(missingPacketWrite);
 
-
-
                             totalNumOfPackets = (totalNumOfPackets - packetsFound.size());
 
                             // set up map with correct number of packets wanted
@@ -1559,8 +1614,16 @@ public class ControllerService extends Service {
                                 statusReview.close();
                                 close();
                                 notificationQueue.clear();
-                                sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
+                                // make sure characteristic has been written to
+                                try {
+                                    characteristicWriteBlock.take();
+                                } catch (Exception ex) {
 
+                                }
+
+                                //sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
+                                strJSON = null;
+                                currConnectedDevice.disconnect();
                             } else {
 
                                 for (int i = 0; i < totalNumOfPackets; i++) {
@@ -1615,6 +1678,18 @@ public class ControllerService extends Service {
                     robotsAsBTDevices.clear();
                 }
             }, 3000);
+        }
+    }
+
+
+    /**
+     * thread to call makeRobot() -> which is a blocking call
+     */
+
+    private class MakeRobot extends Thread {
+        @Override
+        public void run() {
+
         }
     }
 
