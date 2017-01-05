@@ -65,14 +65,13 @@ public class RobotNexus extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        // end our update
         modelUpdate.close();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // end our update
-        modelUpdate.close();
     }
 
     private class ModelUpdate extends Thread {

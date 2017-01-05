@@ -243,11 +243,12 @@ public class ControllerService extends Service {
                             public void run() {
 
 
-                                // if this connections is poor -> disconnect
+                                // if this disconnect is 133 -> have to close down BT in order
+                                // to close connection down
                                 if (status == 133) {
-                                    Log.e("onConnect", "closing connection and restarting bluetooth");
-                                    Log.e("onConnect", "Status: " + status);
-                                    Log.e("onConnect", "newState: " + newState);
+                                    Log.e("onDisconnect", "closing connection and restarting bluetooth");
+                                    Log.e("onDisconnect", "Status: " + status);
+                                    Log.e("onDisconnect", "newState: " + newState);
                                     gatt.disconnect();
                                     gatt.close();
                                     currConnectedDevice = null;
@@ -256,16 +257,17 @@ public class ControllerService extends Service {
                                     if (btAdapter != null) {
                                         // resetting BT
                                         btAdapter.disable();
-                                        try {
-                                            sleep(5000);
-                                        } catch (Exception ex) {
-
+                                        while (btAdapter.isEnabled()) {
+                                            try {
+                                                Log.i("onDisconnect", "Putting service thread to sleep");
+                                                sleep(500);
+                                            } catch (Exception ex) {
+                                            }
                                         }
                                         btAdapter.enable();
                                         onStartCommandSeparateThread();
                                     }
                                     return;
-
                                 }
 
                                 if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -286,10 +288,12 @@ public class ControllerService extends Service {
                                             if (btAdapter != null) {
                                                 // resetting BT
                                                 btAdapter.disable();
-                                                try {
-                                                    sleep(5000);
-                                                } catch (Exception ex) {
-
+                                                while (btAdapter.isEnabled()) {
+                                                    try {
+                                                        Log.i("onConnect", "Putting service thread to sleep");
+                                                        sleep(500);
+                                                    } catch (Exception ex) {
+                                                    }
                                                 }
                                                 btAdapter.enable();
                                                 onStartCommandSeparateThread();
@@ -302,7 +306,8 @@ public class ControllerService extends Service {
                                 }
 
                                 if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                                    if (status == BluetoothGatt.GATT_SUCCESS || status == 19) {
+                                    if (status == BluetoothGatt.GATT_SUCCESS || status == 19
+                                            || status == 62) {
                                         // status is only 19 on lollipop with Vanir (so far) when disconnect is
                                         // from server side
                                         //testTotal = 0;
@@ -374,7 +379,7 @@ public class ControllerService extends Service {
                                         @Override
                                         public void run() {
 
-                                            makeRobot(currConnectedDevice);
+                                            makeRobot();
                                             /*
                                             DeviceUtilities.robot = robot;
                                             if (MainActivity.isOnMain) {
@@ -610,10 +615,10 @@ public class ControllerService extends Service {
         // enabling bluetooth is not a blocking call so we need to make sure bt is on
         while (!btAdapter.isEnabled()) {
             try {
-                Log.v(TAG, "Putting service thread to sleep");
-                Thread.sleep(2000);
+                Log.i(TAG, "Putting service thread to sleep");
+                Thread.sleep(500);
             } catch (InterruptedException ex) {
-                Log.v(TAG, "Service thread failed to sleep.");
+                Log.e(TAG, "Service thread failed to sleep.");
             }
         }
         //start scanning
@@ -1204,11 +1209,17 @@ public class ControllerService extends Service {
      * * makes a robot and adds it to our copy of the model
      * * takes care of enabling notifications
      */
-    private void makeRobot(BluetoothGatt gatt) {
+    private void makeRobot() {
 
         ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
+        ArrayList<BluetoothGattService> serviceList = new ArrayList<>();
 
-        ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
+        try {
+            serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
+        } catch (NullPointerException ex) {
+            Log.e("makeRobot()", "No device connected");
+            return;
+        }
 
         for (BluetoothGattService service : serviceList) {
 
@@ -1620,7 +1631,6 @@ public class ControllerService extends Service {
                                 } catch (Exception ex) {
 
                                 }
-
                                 sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
                             } else {
 
