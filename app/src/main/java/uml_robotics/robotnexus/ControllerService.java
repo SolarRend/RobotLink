@@ -1621,9 +1621,7 @@ public class ControllerService extends Service {
 
                                 }
 
-                                //sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
-                                strJSON = null;
-                                currConnectedDevice.disconnect();
+                                sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
                             } else {
 
                                 for (int i = 0; i < totalNumOfPackets; i++) {
