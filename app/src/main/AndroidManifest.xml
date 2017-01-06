@@ -20,7 +20,7 @@
         </activity>
         <activity
             android:name=".RobotNexus"
-            android:label="@string/title_activity_robot_nexus"
+            android:label="Nearby Robots"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <service

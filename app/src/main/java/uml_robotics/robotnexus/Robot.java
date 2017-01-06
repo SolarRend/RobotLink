@@ -10,7 +10,7 @@ import android.graphics.Bitmap;
 public class Robot {
     public enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
     private String name; // name of robot
-    private Bitmap image; // image a robot may want to transfer
+    private Integer image; // image id of what robot looks like
     private boolean dismissed = false; // for dismissed robots
     private int proximity; // how close is this robot
     private String id; //hidden identifier for a bot
@@ -56,11 +56,11 @@ public class Robot {
         return currState.toString();
     }
 
-    public void setImage(Bitmap image) {
+    public void setImage(Integer image) {
         this.image = image;
     }
 
-    public Bitmap getImage() {
+    public Integer getImage() {
         return image;
     }
 
@@ -94,13 +94,14 @@ public class Robot {
         robot.setName(this.getName());
         robot.setCurrState(this.getCurrState());
         robot.setModel(this.getModel());
+        robot.setImage(this.getImage());
         return robot;
     }
 
     @Override
     public String toString() {
-        return (name == null? "Null" : name) + " - " + model +
+        return (name == null? "Null" : name) /*+ " - " + model +
                 "\nStatus: " + currState.toString() + "\nProximity: " +
-                proximity + "\nID: " + id;
+                proximity + "\nID: " + id*/;
      }
 }

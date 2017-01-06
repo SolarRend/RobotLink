@@ -517,6 +517,7 @@ public class ControllerService extends Service {
                             DeviceUtilities.robot.getGattServer().disconnect();
 
                         } else */
+                                /*
                                 if (DESERIALIZE_JPEG.equals(action)) {
                                     // image transfer has been completed
 
@@ -542,7 +543,9 @@ public class ControllerService extends Service {
                                     }
                                     strJSON = null;
 
-                                } else if (UPDATE_COMPLETE.equals(action)) {
+                                } else*/
+
+                                if (UPDATE_COMPLETE.equals(action)) {
                                     // update complete
                                     // convert our string into JSON
                                     try {
@@ -1379,6 +1382,7 @@ public class ControllerService extends Service {
             // setting robot name, rssi (proximity) and ID
             Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
                     currConnectedDevice.getDevice().getAddress());
+            robot.setImage(R.drawable.junior); //TEMPORARY
             modelLock.lock();
             model.add(robot);
             modelLock.unlock();
@@ -1690,16 +1694,6 @@ public class ControllerService extends Service {
     }
 
 
-    /**
-     * thread to call makeRobot() -> which is a blocking call
-     */
-
-    private class MakeRobot extends Thread {
-        @Override
-        public void run() {
-
-        }
-    }
 
     /**
      * **************************************

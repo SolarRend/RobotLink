@@ -20,7 +20,7 @@ import java.util.ArrayList;
 public class RobotNexus extends AppCompatActivity {
     private ArrayList<Robot> model; // view's copy of the model
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
-    private ArrayAdapter<Robot> displayAdapter; //adapter for listview to display robot info
+    private RobotNavListAdapter displayAdapter; //adapter for listview to display robot info
     private Handler robotNexusHandler; //handler to manipulate robot nexus UI
 
     @Override
@@ -34,11 +34,17 @@ public class RobotNexus extends AppCompatActivity {
 
         robotNexusHandler = new Handler(); // getting this view's thread
 
-        //setting up ui info list
-        displayAdapter = new ArrayAdapter<>(RobotNexus.this, R.layout.text_resource);
-        for (Robot robot : model) {
-            displayAdapter.add(robot);
+
+        //setting up ui robot list
+        Integer images[]  = new Integer[model.size()];
+        Robot robots[] = new Robot[model.size()];
+        int i = 0;
+        for (Robot bot : model) {
+            robots[i] = bot;
+            images[i] = bot.getImage();
+            i++;
         }
+        displayAdapter = new RobotNavListAdapter(RobotNexus.this, robots, images);
         ListView listView = (ListView) findViewById(R.id.robot_list);
         listView.setAdapter(displayAdapter);
 
@@ -89,11 +95,17 @@ public class RobotNexus extends AppCompatActivity {
                     model = ControllerService.getModel();
                     Log.i("RobotNexus.ModelUpdate", "Model changed");
 
-                    displayAdapter = new ArrayAdapter<>(RobotNexus.this, R.layout.text_resource);
-                    for (Robot robot : model) {
-                        displayAdapter.add(robot);
+                    //setting up ui robot list
+                    Integer images[]  = new Integer[model.size()];
+                    Robot robots[] = new Robot[model.size()];
+                    int i = 0;
+                    for (Robot bot : model) {
+                        robots[i] = bot;
+                        images[i] = bot.getImage();
+                        i++;
                     }
-                    //final Bitmap image = model.get(0).getImage();
+                    displayAdapter = new RobotNavListAdapter(RobotNexus.this, robots, images);
+
                     robotNexusHandler.post(new Runnable() {
                         @Override
                         public void run() {
