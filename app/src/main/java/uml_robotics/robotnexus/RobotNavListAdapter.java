@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
- * custom adapter for robot nexus and navigation drawer lists
+ * custom adapter for robot selector and navigation drawer lists
  */
 
 public class RobotNavListAdapter extends ArrayAdapter<Robot> {

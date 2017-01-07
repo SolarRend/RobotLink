@@ -348,15 +348,16 @@ public class ControllerService extends Service {
 
                                         // safety-net
                                         if (btAdapter != null) {
-                                            //try {
-                                                //sleep(2000);
-                                            //} catch (Exception ex) {
-
-                                            //}
                                             //starting scan on service thread
-                                            btAdapter.startLeScan(leCallback);
+                                            while (!(btAdapter.startLeScan(leCallback))) {
+                                                try {
+                                                    Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
+                                                    sleep(500);
+                                                } catch (InterruptedException ex) {
+                                                    Log.e("onDisconnect", "Service thread failed to sleep.");
+                                                }
+                                            }
                                             isScanning = true;
-
                                         }
                                     }
                                 }
@@ -619,13 +620,20 @@ public class ControllerService extends Service {
         while (!btAdapter.isEnabled()) {
             try {
                 Log.i(TAG, "Putting service thread to sleep");
-                Thread.sleep(500);
+                sleep(500);
             } catch (InterruptedException ex) {
                 Log.e(TAG, "Service thread failed to sleep.");
             }
         }
         //start scanning
-        btAdapter.startLeScan(leCallback);
+        while (!(btAdapter.startLeScan(leCallback))) {
+            try {
+                Log.i(TAG, "Failed to start scan. Re-attempting to start scan");
+                sleep(500);
+            } catch (InterruptedException ex) {
+                Log.e(TAG, "Service thread failed to sleep.");
+            }
+        }
         isScanning = true;
     }
 

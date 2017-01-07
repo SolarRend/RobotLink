@@ -19,14 +19,19 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".RobotNexus"
+            android:name=".RobotSelector"
             android:label="Nearby Robots"
             android:theme="@style/AppTheme.NoActionBar" />
 
         <service
             android:name=".ControllerService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
+
+        <activity
+            android:name=".RobotLink"
+            android:label="@string/title_activity_robot_link"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

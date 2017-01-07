@@ -13,7 +13,7 @@ import android.util.Log;
 /*
  * * Dec 22, 2016
  * * created project
- * created controller and RobotNexus view
+ * created controller and RobotSelector view
  * created Robot object that the model will contain an array list of
  * finished onstartcommand stuff in controllerservice
  *
@@ -38,9 +38,9 @@ public class MainActivity extends AppCompatActivity {
         this.startService(serviceIntent);
         Log.i("MAIN.onCreate()", "Started service");
 
-        // starting the *real main activity* which will be a hub for all robots in the area
-        this.startActivity(new Intent(MainActivity.this, RobotNexus.class));
-        Log.i("MAIN.onCreate()", "Transitioning to Robot Nexus activity");
+        // starting the *real main activity* which will be a navigation screen for all robots in the area
+        this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
+        Log.i("MAIN.onCreate()", "Transitioning to RobotSelector activity");
     }
 
     @Override
