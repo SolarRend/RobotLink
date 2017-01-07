@@ -234,14 +234,13 @@ public class ControllerService extends Service {
 
                 btGattCallback = new BluetoothGattCallback() {
                     @Override
-                    public void onConnectionStateChange(final BluetoothGatt gatt,final int status, final int newState) {
+                    public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
 
                         Log.i("onConnectionStateChange", "Status: " + status);
                         Log.i("onConnectionStateChange", "newState: " + newState);
                         serviceHandler.post(new Runnable() {
                             @Override
                             public void run() {
-
 
                                 // if this disconnect is 133 -> have to close down BT in order
                                 // to close connection down
@@ -306,59 +305,54 @@ public class ControllerService extends Service {
                                 }
 
                                 if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                                    if (status == BluetoothGatt.GATT_SUCCESS || status == 19
-                                            || status == 62) {
-                                        // status is only 19 on lollipop with Vanir (so far) when disconnect is
-                                        // from server side
-                                        //testTotal = 0;
-                                        //Log.i("onDisconnect", "Disconnected with status " + status);
-                                        Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
-                                        currConnectedDevice.close();
-                                        currConnectedDevice = null;
-                                        isConnected = false;
+                                    //testTotal = 0;
+                                    //Log.i("onDisconnect", "Disconnected with status " + status);
+                                    Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
+                                    currConnectedDevice.close();
+                                    currConnectedDevice = null;
+                                    isConnected = false;
 
-                                        //tell RobotInfo to end
-                                        //sendBroadcast(new Intent().setAction(FINISH));
+                                    //tell RobotInfo to end
+                                    //sendBroadcast(new Intent().setAction(FINISH));
 
-                                        // end transfer review if we disconnected during transfer process
-                                        if (!statusReviewOff) {
-                                            statusReview.close();
-                                            statusReview = null;
-                                        }
+                                    // end transfer review if we disconnected during transfer process
+                                    if (!statusReviewOff) {
+                                        statusReview.close();
+                                        statusReview = null;
+                                    }
 
-                                        // end notification read (safety if we disconnect during transfer)
-                                        if (readNotifications != null) {
-                                            readNotifications.close();
-                                        }
+                                    // end notification read (safety if we disconnect during transfer)
+                                    if (readNotifications != null) {
+                                        readNotifications.close();
+                                    }
 
-                                        //**DEMO** end tracking of robot proximity
-                                        //tracker.close();
-                                        //tracker = null;
+                                    //**DEMO** end tracking of robot proximity
+                                    //tracker.close();
+                                    //tracker = null;
 
-                                        //DeviceUtilities.clear();
-                                        //arAdapter.clear();
-                                        //robot.clean();
-                                        //DeviceUtilities.robot = null;
-                                        strJSON = null;
+                                    //DeviceUtilities.clear();
+                                    //arAdapter.clear();
+                                    //robot.clean();
+                                    //DeviceUtilities.robot = null;
+                                    strJSON = null;
 
-                                        //safety-net
-                                        //if (notifManager != null) {
-                                        //notifManager.cancelAll();
-                                        //}
+                                    //safety-net
+                                    //if (notifManager != null) {
+                                    //notifManager.cancelAll();
+                                    //}
 
-                                        // safety-net
-                                        if (btAdapter != null) {
-                                            //starting scan on service thread
-                                            while (!(btAdapter.startLeScan(leCallback))) {
-                                                try {
-                                                    Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
-                                                    sleep(500);
-                                                } catch (InterruptedException ex) {
-                                                    Log.e("onDisconnect", "Service thread failed to sleep.");
-                                                }
+                                    // safety-net
+                                    if (btAdapter != null) {
+                                        //starting scan on service thread
+                                        while (!(btAdapter.startLeScan(leCallback))) {
+                                            try {
+                                                Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
+                                                sleep(500);
+                                            } catch (InterruptedException ex) {
+                                                Log.e("onDisconnect", "Service thread failed to sleep.");
                                             }
-                                            isScanning = true;
                                         }
+                                        isScanning = true;
                                     }
                                 }
                             }
@@ -1222,81 +1216,78 @@ public class ControllerService extends Service {
      */
     private void makeRobot() {
 
-        ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
-        ArrayList<BluetoothGattService> serviceList = new ArrayList<>();
-
         try {
+            ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
+            ArrayList<BluetoothGattService> serviceList = new ArrayList<>();
+
             serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
-        } catch (NullPointerException ex) {
-            Log.e("makeRobot()", "No device connected");
-            return;
-        }
-
-        for (BluetoothGattService service : serviceList) {
-
-            String uuidOfService = service.getUuid().toString();
-
-            if (supportedServices.containsKey(uuidOfService)) {
-
-                ArrayList<BluetoothGattCharacteristic> charList = ((ArrayList<BluetoothGattCharacteristic>) service.getCharacteristics());
-
-                for (BluetoothGattCharacteristic chara : charList) {
-                    String uuidOfCharacteristic = chara.getUuid().toString();
 
 
-                    if (supportedCharas.containsKey(uuidOfCharacteristic)) {
-                        // checking if characteristic supports notification or indication (one or the other)
-                        if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+            for (BluetoothGattService service : serviceList) {
 
-                            //enable notifications
-                            subscribe(chara, true, 0, currConnectedDevice);
-                            //Log.i("makeRobot().not", supportedCharas.get(uuidOfCharacteristic));
-                            try {
-                                makeRobotBlock.take();
-                            } catch (InterruptedException ex) {
-                                Log.e("makeRobot()", "failed to take from blocking queue");
+                String uuidOfService = service.getUuid().toString();
+
+                if (supportedServices.containsKey(uuidOfService)) {
+
+                    ArrayList<BluetoothGattCharacteristic> charList = ((ArrayList<BluetoothGattCharacteristic>) service.getCharacteristics());
+
+                    for (BluetoothGattCharacteristic chara : charList) {
+                        String uuidOfCharacteristic = chara.getUuid().toString();
+
+
+                        if (supportedCharas.containsKey(uuidOfCharacteristic)) {
+                            // checking if characteristic supports notification or indication (one or the other)
+                            if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+
+                                //enable notifications
+                                subscribe(chara, true, 0, currConnectedDevice);
+                                //Log.i("makeRobot().not", supportedCharas.get(uuidOfCharacteristic));
+                                try {
+                                    makeRobotBlock.take();
+                                } catch (InterruptedException ex) {
+                                    Log.e("makeRobot()", "failed to take from blocking queue");
+                                }
+
+                            } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+
+                                //enable indications
+                                subscribe(chara, true, 1, currConnectedDevice);
+                                //Log.i("makeRobot().ind", supportedCharas.get(uuidOfCharacteristic));
+                                try {
+                                    makeRobotBlock.take();
+                                } catch (InterruptedException ex) {
+                                    Log.e("makeRobot()", "failed to take from blocking queue");
+                                }
                             }
 
-                        } else if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
-
-                            //enable indications
-                            subscribe(chara, true, 1, currConnectedDevice);
-                            //Log.i("makeRobot().ind", supportedCharas.get(uuidOfCharacteristic));
-                            try {
-                                makeRobotBlock.take();
-                            } catch (InterruptedException ex) {
-                                Log.e("makeRobot()", "failed to take from blocking queue");
-                            }
+                            allSupportedCharacteristics.add(chara);
                         }
-
-                        allSupportedCharacteristics.add(chara);
                     }
                 }
             }
-        }
 
-        for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
+            for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
 
-            String uuidOfCharacteristic = chara.getUuid().toString();
+                String uuidOfCharacteristic = chara.getUuid().toString();
 
-            // Attempt to read this characteristic
-            if (currConnectedDevice.readCharacteristic(chara)) {
-                try {
-                    makeRobotBlock.take();
-                } catch (Exception ex) {
-                    Log.e("makeRobot()", "failed to take from blocking queue");
+                // Attempt to read this characteristic
+                if (currConnectedDevice.readCharacteristic(chara)) {
+                    try {
+                        makeRobotBlock.take();
+                    } catch (Exception ex) {
+                        Log.e("makeRobot()", "failed to take from blocking queue");
+                    }
                 }
+
+
+                if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+                    missingPacketWrite = chara;
+                }
+                //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
+                //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
+                //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
+
             }
-
-
-            if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
-                missingPacketWrite = chara;
-            }
-            //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
-            //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
-            //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
-
-        }
 
 
 
@@ -1370,30 +1361,34 @@ public class ControllerService extends Service {
         }
         */
 
-        // says if robot is already known to the model
-        boolean alreadyContained = false;
-        modelLock.lock();
-        model = getModel();
-        // check if current robot is already in our model
-        for (Robot bot : model) {
-            if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
-                bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
-                model.set(model.indexOf(bot), (Robot)bot.clone());
-                alreadyContained = true;
-                break;
-            }
-        }
-        modelLock.unlock();
-
-        if (!alreadyContained) {
-            // this is a new robot
-            // setting robot name, rssi (proximity) and ID
-            Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
-                    currConnectedDevice.getDevice().getAddress());
-            robot.setImage(R.drawable.junior); //TEMPORARY
+            // says if robot is already known to the model
+            boolean alreadyContained = false;
             modelLock.lock();
-            model.add(robot);
+            model = getModel();
+            // check if current robot is already in our model
+            for (Robot bot : model) {
+                if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
+                    bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
+                    model.set(model.indexOf(bot), (Robot) bot.clone());
+                    alreadyContained = true;
+                    break;
+                }
+            }
             modelLock.unlock();
+
+            if (!alreadyContained) {
+                // this is a new robot
+                // setting robot name, rssi (proximity) and ID
+                Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
+                        currConnectedDevice.getDevice().getAddress());
+                robot.setImage(R.drawable.junior); //TEMPORARY
+                modelLock.lock();
+                model.add(robot);
+                modelLock.unlock();
+            }
+        } catch (NullPointerException ex) {
+            Log.e("makeRobot()", "No device connected");
+            return;
         }
 
         // thread for reading notifications
@@ -1401,6 +1396,7 @@ public class ControllerService extends Service {
         readNotifications.start();
         Log.i("Controller.makeRobot()", "Finished");
     }
+
     /**
      * enables or disables characteristic notification/indication
      *

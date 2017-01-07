@@ -46,6 +46,9 @@ public class RobotLink extends AppCompatActivity {
             }
         }
 
+        // setting title
+        setTitle(robot.getName());
+
         //set status of robot on UI
         ImageView statusImage = (ImageView)findViewById(R.id.statusIconView);
         String status = robot.getCurrState();
