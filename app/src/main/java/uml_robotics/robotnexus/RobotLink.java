@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -48,6 +50,19 @@ public class RobotLink extends AppCompatActivity {
 
         // setting title
         setTitle(robot.getName());
+
+        // setting robot's image in toolbar
+        ActionBar actionBar = getSupportActionBar(); // getting this activity's actionbar
+        ImageView robotImage = new ImageView(actionBar.getThemedContext());
+        robotImage.setImageResource(robot.getImage());
+        ActionBar.LayoutParams layoutParams = new ActionBar.LayoutParams(
+                120, //works for junior image
+                170, //work for junior image
+                Gravity.END | Gravity.CENTER_VERTICAL);
+        layoutParams.rightMargin = 50;
+        robotImage.setLayoutParams(layoutParams);
+        toolbar.addView(robotImage);
+
 
         //set status of robot on UI
         ImageView statusImage = (ImageView)findViewById(R.id.statusIconView);

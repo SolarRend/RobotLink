@@ -30,8 +30,8 @@ public class RobotNavListAdapter extends ArrayAdapter<Robot> {
         LayoutInflater inflater = Context.getLayoutInflater();
         View ListViewSingle = inflater.inflate(R.layout.robot_list_resource, null, true);
 
-        TextView ListViewItems = (TextView) ListViewSingle.findViewById(R.id.textView);
-        ImageView ListViewImage = (ImageView) ListViewSingle.findViewById(R.id.imageView);
+        TextView ListViewItems = (TextView) ListViewSingle.findViewById(R.id.robot_list_text);
+        ImageView ListViewImage = (ImageView) ListViewSingle.findViewById(R.id.robot_list_image);
 
         ListViewItems.setText(robots[position].toString());
         ListViewImage.setImageResource(images[position]);
