@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
         this.startService(serviceIntent);
         Log.i("MAIN.onCreate()", "Started service");
 
+        // boot up notification service
+
         // starting the *real main activity* which will be a navigation screen for all robots in the area
         this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
         Log.i("MAIN.onCreate()", "Transitioning to RobotSelector activity");

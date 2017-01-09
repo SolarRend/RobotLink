@@ -1,5 +1,6 @@
 package uml_robotics.robotnexus;
 
+import android.graphics.Color;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,8 +12,13 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -57,7 +63,7 @@ public class RobotLink extends AppCompatActivity {
         robotImage.setImageResource(robot.getImage());
         ActionBar.LayoutParams layoutParams = new ActionBar.LayoutParams(
                 120, //works for junior image
-                170, //work for junior image
+                170, //works for junior image
                 Gravity.END | Gravity.CENTER_VERTICAL);
         layoutParams.rightMargin = 50;
         robotImage.setLayoutParams(layoutParams);
@@ -78,11 +84,148 @@ public class RobotLink extends AppCompatActivity {
         } else if (status.equals("off")) {
             statusImage.setImageResource(R.drawable.off);
         }
+
+
+        /**
+         * MOCK-UP progression dialog
+         */
+        // Layout that is the progression box
+        RelativeLayout relativeLayout = new RelativeLayout(RobotLink.this);
+
+        // parameters for relative layout
+        LinearLayout.LayoutParams relParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+        // setting margins for the layout to keep progressions separated
+        relParams.setMargins(0, 0, 0, 75);
+
+        // setting parameters for layout
+        relativeLayout.setLayoutParams(relParams);
+
+        //changing layouts background color to match theme
+        relativeLayout.setBackgroundColor(Color.WHITE);
+
+        // content view of the progression
+        TextView contentView = new TextView(RobotLink.this);
+        contentView.setText("Would you like me to stop?"); // textual content
+        contentView.setTextSize(20); // size of text
+        contentView.setTextColor(Color.BLACK); // color of text
+        contentView.setId(View.generateViewId()); // generating random id for view
+
+        //parameters for content view
+        RelativeLayout.LayoutParams textParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT);
+
+        // making text start at left hand side of progression box
+        textParams.addRule(RelativeLayout.LEFT_OF);
+        textParams.setMargins(20, 30, 0, 30); // margin for content to not be so close to edge
+        contentView.setLayoutParams(textParams); // setting parameters for the content view
+        relativeLayout.addView(contentView); // appending content into our progression box;
+
+
+        // making horizontal linear layout to contain buttons
+        LinearLayout buttonLayout = new LinearLayout(RobotLink.this);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        RelativeLayout.LayoutParams buttonLayoutParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+        );
+        buttonLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        buttonLayoutParams.addRule(RelativeLayout.BELOW, contentView.getId());
+        buttonLayoutParams.bottomMargin = 30;
+        buttonLayout.setLayoutParams(buttonLayoutParams);
+
+
+        // Making buttons for each response
+        //parameters for button view
+        LinearLayout.LayoutParams buttonParams1 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+        buttonParams1.rightMargin = 30;
+        LinearLayout.LayoutParams buttonParams2 = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+        Button responseButton1 = new Button(RobotLink.this);
+        Button responseButton2 = new Button(RobotLink.this);
+        responseButton1.setTransformationMethod(null); // remove all caps
+        responseButton2.setTransformationMethod(null);
+        responseButton1.setText("Yes"); // value of response
+        responseButton2.setText("No"); // value of response
+        responseButton1.setTextSize(20);
+        responseButton2.setTextSize(20);
+        responseButton1.setTextColor(Color.BLACK);
+        responseButton2.setTextColor(Color.BLACK);
+        responseButton1.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+        responseButton2.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+        responseButton1.setLayoutParams(buttonParams1);
+        responseButton2.setLayoutParams(buttonParams2);
+        responseButton1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //parameters for response view
+                LinearLayout.LayoutParams responseParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
+
+                responseParams.setMargins(20, 0, 0, 130);
+                TextView responseText = new TextView(RobotLink.this);
+                responseText.setTextSize(22);
+                responseText.setTextColor(Color.BLACK);
+                responseText.setLayoutParams(responseParams);
+                responseText.setText("Your Response: " + ((Button)v).getText());
+                ((LinearLayout)findViewById(R.id.scroll_layout)).addView(responseText);
+            }
+        });
+
+        responseButton2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //parameters for response view
+                LinearLayout.LayoutParams responseParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
+
+                responseParams.setMargins(20, 0, 0, 130);
+                TextView responseText = new TextView(RobotLink.this);
+                responseText.setTextSize(22);
+                responseText.setTextColor(Color.BLACK);
+                responseText.setLayoutParams(responseParams);
+                responseText.setText("Your Response: " + ((Button)v).getText());
+                ((LinearLayout)findViewById(R.id.scroll_layout)).addView(responseText);
+            }
+        });
+        buttonLayout.addView(responseButton1);
+        buttonLayout.addView(responseButton2);
+
+
+
+        // appending
+        LinearLayout layout = (LinearLayout)findViewById(R.id.scroll_layout);
+        relativeLayout.addView(buttonLayout);
+        layout.addView(relativeLayout);
+        /**
+         * END MOCK-UP
+         */
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+
+        // setting progression dialog scroll view to end
+        final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+        scrollView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                scrollView.fullScroll(View.FOCUS_DOWN);
+            }
+        }, 75);
+
         // start model update
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
@@ -167,4 +310,5 @@ public class RobotLink extends AppCompatActivity {
             keepAlive = false;
         }
     }
+
 }
