@@ -94,7 +94,6 @@ public class ControllerService extends Service {
     private RobotUpdateClock robotUpdateClock;
     private BlockingQueue<Integer> characteristicWriteBlock = null;
 
-
     /*
      * characteristics/values of our currently connected robot
      */
