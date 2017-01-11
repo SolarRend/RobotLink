@@ -37,7 +37,16 @@
         <service
             android:name=".NotificationViewService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
+
+        <receiver
+            android:name=".ServiceReanimate"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="uml_robotics.reanimate.controller"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -43,8 +43,8 @@ import static java.lang.Thread.sleep;
 
 public class ControllerService extends Service {
     // action name to extract the jpeg from strJSON
-    private final String DESERIALIZE_JPEG = "uml_robotics.robotlink.deserialize_jpeg";
-    private final String UPDATE_COMPLETE = "uml_robotics.robotlink.update_complete";
+    private final String DESERIALIZE_JPEG = "uml_robotics.controller.deserialize_jpeg";
+    private final String UPDATE_COMPLETE = "uml_robotics.controller.update_complete";
     private ServiceLooper serviceLooper; //looper to maintain a service thread
     private Handler serviceHandler; // handler for posting to looper
     private static ArrayList<Robot> theModel; // the model of the system -> only manipulate through its methods
@@ -115,10 +115,6 @@ public class ControllerService extends Service {
         serviceLooper = new ServiceLooper();
         serviceLooper.start();
 
-        // make the model and its lock
-        theModel = new ArrayList<Robot>();
-        theModelLock = new ReentrantLock();
-
         // sleeping for one second to give looper a chance to make handler
         try {
             sleep(1000);
@@ -182,9 +178,6 @@ public class ControllerService extends Service {
 
                 //block for writing to server
                 characteristicWriteBlock = new ArrayBlockingQueue<Integer>(1);
-
-                // getting copy of model
-                model = getModel();
 
                 //creating lock for when controller is accessing its own copy of the model
                 modelLock = new ReentrantLock();
@@ -262,6 +255,8 @@ public class ControllerService extends Service {
                                             } catch (Exception ex) {
                                             }
                                         }
+                                        //reacquire bt adapter
+                                        btAdapter = BluetoothAdapter.getDefaultAdapter();
                                         btAdapter.enable();
                                         onStartCommandSeparateThread();
                                     }
@@ -595,6 +590,26 @@ public class ControllerService extends Service {
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
 
+
+        // make the model and its lock
+        theModel = new ArrayList<Robot>();
+        theModelLock = new ReentrantLock();
+
+        // getting copy of model
+        model = getModel();
+
+        ArrayList<String> test;
+        if (intent.getStringArrayListExtra("EXTRA_MODEL") == null) {
+             test = new ArrayList<>();
+        } else {
+             test = intent.getStringArrayListExtra("EXTRA_MODEL");
+        }
+
+
+        for (String s : test) {
+            Log.i("Controller.onStart", s);
+        }
+
         // go on service thread
         serviceHandler.post(new Runnable() {
             @Override
@@ -676,6 +691,10 @@ public class ControllerService extends Service {
         btGattCallback = null;
         supportedServices = null;
         supportedCharas = null;
+        ArrayList<String> testing = new ArrayList<>();
+        testing.add("i.. will... LIVE!");
+        //sendBroadcast(new Intent().setAction("uml_robotics.reanimate.controller")
+                //.putStringArrayListExtra("EXTRA_MODEL", testing));
         Log.i("Controller.onDestroy()", "Destroyed");
     }
 

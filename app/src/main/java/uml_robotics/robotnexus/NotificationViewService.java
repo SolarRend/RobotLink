@@ -23,6 +23,7 @@ public class NotificationViewService extends Service {
 
     @Override
     public void onCreate() {
+        Log.i("NotifView.onCreate()", "Service Created");
         notifManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         model = ControllerService.getModel();
         // starting model update
@@ -117,7 +118,6 @@ public class NotificationViewService extends Service {
                 }
             }
         }
-
         public void close() {
             keepAlive = false;
         }
