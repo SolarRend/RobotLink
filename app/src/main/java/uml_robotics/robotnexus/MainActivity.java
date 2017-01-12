@@ -29,7 +29,7 @@ import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
     private Intent controllerIntent;
-    private Intent notifViewIntent;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,10 +39,6 @@ public class MainActivity extends AppCompatActivity {
         this.startService(controllerIntent);
         Log.i("MAIN.onCreate()", "Started Controller");
 
-        // boot up notification service
-        notifViewIntent = new Intent(this, NotificationViewService.class);
-        this.startService(notifViewIntent);
-        Log.i("MAIN.onCreate()", "Started NotificationViewService");
 
         // starting the *real main activity* which will be a navigation screen for all robots in the area
         this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
@@ -52,9 +48,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        this.stopService(controllerIntent);
-        Log.i("MAIN.onDestroy()", "Stopped Controller");
-        this.stopService(notifViewIntent);
-        Log.i("MAIN.onDestroy()", "Stopped NotificationViewService");
+        //this.stopService(controllerIntent);
+        //Log.i("MAIN.onDestroy()", "Stopped Controller");
+
     }
 }

@@ -42,6 +42,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static java.lang.Thread.sleep;
 
 public class ControllerService extends Service {
+    // accessed by StartForegroundService to get this service's instance
+    protected static ControllerService controllerService;
     // action name to extract the jpeg from strJSON
     private final String DESERIALIZE_JPEG = "uml_robotics.controller.deserialize_jpeg";
     private final String UPDATE_COMPLETE = "uml_robotics.controller.update_complete";
@@ -49,6 +51,7 @@ public class ControllerService extends Service {
     private Handler serviceHandler; // handler for posting to looper
     private static ArrayList<Robot> theModel; // the model of the system -> only manipulate through its methods
     private static ReentrantLock theModelLock; // keeps mutual exclusion of model tampering
+    private Intent notifViewIntent; // intent used to start notification ui service
     private ArrayList<Robot> model; // controller's copy of the model
     private ReentrantLock modelLock; // mutex for tampering with copy of the model
     private Boolean btInitOff = false; //used for checking initial state of user's bluetooth
@@ -93,7 +96,6 @@ public class ControllerService extends Service {
     // used to ensure all robots in vicinity get updated once
     private RobotUpdateClock robotUpdateClock;
     private BlockingQueue<Integer> characteristicWriteBlock = null;
-
     /*
      * characteristics/values of our currently connected robot
      */
@@ -103,17 +105,23 @@ public class ControllerService extends Service {
      * end fields for currently connected robot
      */
 
-    public ControllerService() {
-    }
+    public ControllerService() {}
 
     @Override
     public void onCreate() {
         final String TAG = "Controller.onCreate()";
         Log.i(TAG, "Service created");
 
+        // make the model and its lock
+        theModel = new ArrayList<Robot>();
+        theModelLock = new ReentrantLock();
+
         // create the service thread
         serviceLooper = new ServiceLooper();
         serviceLooper.start();
+
+        // set this instance
+        controllerService = this;
 
         // sleeping for one second to give looper a chance to make handler
         try {
@@ -126,6 +134,14 @@ public class ControllerService extends Service {
         serviceHandler.post(new Runnable() {
             @Override
             public void run() {
+
+                // enable the controller as a foreground service without notification
+                startService(new Intent(ControllerService.this, StartForegroundService.class));
+
+                // boot up notification service
+                notifViewIntent = new Intent(ControllerService.this, NotificationViewService.class);
+                ControllerService.this.startService(notifViewIntent);
+                Log.i("Controller.onCreate()", "Started NotificationViewService");
 
                 //Getting app's btAdapter
                 btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -590,26 +606,6 @@ public class ControllerService extends Service {
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
 
-
-        // make the model and its lock
-        theModel = new ArrayList<Robot>();
-        theModelLock = new ReentrantLock();
-
-        // getting copy of model
-        model = getModel();
-
-        ArrayList<String> test;
-        if (intent.getStringArrayListExtra("EXTRA_MODEL") == null) {
-             test = new ArrayList<>();
-        } else {
-             test = intent.getStringArrayListExtra("EXTRA_MODEL");
-        }
-
-
-        for (String s : test) {
-            Log.i("Controller.onStart", s);
-        }
-
         // go on service thread
         serviceHandler.post(new Runnable() {
             @Override
@@ -647,6 +643,10 @@ public class ControllerService extends Service {
 
     @Override
     public void onDestroy() {
+
+        // stop service
+        this.stopService(notifViewIntent);
+        Log.i("Controller.onDestroy()", "Stopped NotificationViewService");
 
         //close if we are connected
         if (currConnectedDevice != null) {
@@ -691,10 +691,6 @@ public class ControllerService extends Service {
         btGattCallback = null;
         supportedServices = null;
         supportedCharas = null;
-        ArrayList<String> testing = new ArrayList<>();
-        testing.add("i.. will... LIVE!");
-        //sendBroadcast(new Intent().setAction("uml_robotics.reanimate.controller")
-                //.putStringArrayListExtra("EXTRA_MODEL", testing));
         Log.i("Controller.onDestroy()", "Destroyed");
     }
 
