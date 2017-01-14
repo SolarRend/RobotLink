@@ -20,6 +20,12 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 
 /**
@@ -86,9 +92,12 @@ public class RobotLink extends AppCompatActivity {
         }
 
 
+        displayProgression(robot.getProgression());
+
         /**
          * MOCK-UP progression dialog
          */
+        /*
         // Layout that is the progression box
         RelativeLayout relativeLayout = new RelativeLayout(RobotLink.this);
 
@@ -207,6 +216,7 @@ public class RobotLink extends AppCompatActivity {
         LinearLayout layout = (LinearLayout)findViewById(R.id.scroll_layout);
         relativeLayout.addView(buttonLayout);
         layout.addView(relativeLayout);
+        */
         /**
          * END MOCK-UP
          */
@@ -256,6 +266,7 @@ public class RobotLink extends AppCompatActivity {
 
         private boolean keepAlive = true;
         ArrayList<Robot> modelPrime;
+        Robot robotPrime;
 
         @Override
         public void run() {
@@ -263,8 +274,16 @@ public class RobotLink extends AppCompatActivity {
 
                 modelPrime = ControllerService.getModel();
 
-                // if our models don't match up
-                if (!(modelPrime.containsAll(model) && model.containsAll(modelPrime))) {
+                for (Robot bot : modelPrime) {
+                    if (robot.getId().equals(bot.getId())) {
+                        robotPrime = bot;
+                        break;
+                    }
+                }
+
+                // if the robots' progressions or status' don't match up
+                if ((!(robotPrime.getCurrState().equals(robot.getCurrState())))
+                        || (!(robotPrime.getProgression().toString().equals(robot.getProgression().toString())))) {
 
                     model = ControllerService.getModel();
                     Log.i("RobotLink.Update", "Model changed");
@@ -290,6 +309,10 @@ public class RobotLink extends AppCompatActivity {
                                     } else if (status.equals("off")) {
                                         statusImage.setImageResource(R.drawable.off);
                                     }
+
+                                    ((LinearLayout)findViewById(R.id.scroll_layout)).removeAllViews();
+
+                                    displayProgression(robot.getProgression());
                                 }
                             });
                             break;
@@ -311,4 +334,86 @@ public class RobotLink extends AppCompatActivity {
         }
     }
 
+    private void displayProgression(JSONArray progression) {
+        if (progression == null) {
+            return;
+        }
+
+        // loop through all objects in progression
+        for (int i = 0; i < progression.length(); i++) {
+
+            try {
+                // get this element in the progression
+                JSONObject progressionElement = progression.getJSONObject(i);
+
+                //display the content
+
+                // get responses which will be turned into buttons
+                JSONArray responses = progressionElement.getJSONArray("responses");
+
+
+                // Layout that is the progression box
+                RelativeLayout relativeLayout = new RelativeLayout(RobotLink.this);
+
+                // parameters for relative layout
+                LinearLayout.LayoutParams relParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                // setting margins for the layout to keep progressions separated
+                relParams.setMargins(0, 0, 0, 75);
+
+                // setting parameters for layout
+                relativeLayout.setLayoutParams(relParams);
+
+                //changing layouts background color to match theme
+                relativeLayout.setBackgroundColor(Color.WHITE);
+
+                // making horizontal linear layout to contain buttons
+                LinearLayout buttonLayout = new LinearLayout(RobotLink.this);
+                buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+                RelativeLayout.LayoutParams buttonLayoutParams = new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.WRAP_CONTENT,
+                        RelativeLayout.LayoutParams.WRAP_CONTENT
+                );
+                buttonLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+                buttonLayout.setLayoutParams(buttonLayoutParams);
+
+                for (int j = 0; j < responses.length(); j++) {
+                    // get this element in the response
+                    JSONObject responseElement = responses.getJSONObject(j);
+
+                    //parameters for button view
+                    LinearLayout.LayoutParams buttonParams1 = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    buttonParams1.rightMargin = 10;
+                    Button responseButton1 = new Button(RobotLink.this);
+                    responseButton1.setTransformationMethod(null); // remove all caps
+                    responseButton1.setText(responseElement.getString("value")); // value of response
+                    responseButton1.setTextSize(20);
+                    responseButton1.setTextColor(Color.BLACK);
+                    responseButton1.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+                    responseButton1.setLayoutParams(buttonParams1);
+                    responseButton1.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                        }
+                    });
+                    buttonLayout.addView(responseButton1);
+
+                }
+
+                ((LinearLayout)findViewById(R.id.scroll_layout)).addView(buttonLayout);
+
+            } catch (JSONException ex) {
+                StringWriter stringWriter = new StringWriter();
+                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                ex.printStackTrace(printWriter);
+                Log.e("RobotLink.Progression", stringWriter.toString());
+            }
+
+        }
+    }
 }

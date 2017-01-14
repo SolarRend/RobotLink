@@ -22,14 +22,19 @@ import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -174,7 +179,7 @@ public class ControllerService extends Service {
                 supportedCharas.put("00002a10-30de-4630-9b59-27228d45bf11", "Packet Read");
                 supportedCharas.put("00002a11-30de-4630-9b59-27228d45bf11", "Missing Packet Write");
                 supportedCharas.put("00002a12-30de-4630-9b59-27228d45bf11", "Packet Write");
-                //supportedCharas.put("00002a13-30de-4630-9b59-27228d45bf11", "Missing Packet Read");
+                supportedCharas.put("00002a13-30de-4630-9b59-27228d45bf11", "Missing Packet Read");
                 supportedCharas.put("00002a14-30de-4630-9b59-27228d45bf11", "Total Number of Packets");
 
                 //List of rejected bluetooth devices
@@ -274,6 +279,7 @@ public class ControllerService extends Service {
                                         //reacquire bt adapter
                                         btAdapter = BluetoothAdapter.getDefaultAdapter();
                                         btAdapter.enable();
+                                        robotsAsBTDevices.clear();
                                         onStartCommandSeparateThread();
                                     }
                                     return;
@@ -318,51 +324,59 @@ public class ControllerService extends Service {
                                     //testTotal = 0;
                                     //Log.i("onDisconnect", "Disconnected with status " + status);
                                     Log.i("onDisconnect", "Disconnected from " + (gatt.getDevice()).getName());
-                                    currConnectedDevice.close();
-                                    currConnectedDevice = null;
-                                    isConnected = false;
+                                    try {
+                                        currConnectedDevice.close();
+                                        currConnectedDevice = null;
+                                        isConnected = false;
 
-                                    //tell RobotInfo to end
-                                    //sendBroadcast(new Intent().setAction(FINISH));
+                                        //tell RobotInfo to end
+                                        //sendBroadcast(new Intent().setAction(FINISH));
 
-                                    // end transfer review if we disconnected during transfer process
-                                    if (!statusReviewOff) {
-                                        statusReview.close();
-                                        statusReview = null;
-                                    }
-
-                                    // end notification read (safety if we disconnect during transfer)
-                                    if (readNotifications != null) {
-                                        readNotifications.close();
-                                    }
-
-                                    //**DEMO** end tracking of robot proximity
-                                    //tracker.close();
-                                    //tracker = null;
-
-                                    //DeviceUtilities.clear();
-                                    //arAdapter.clear();
-                                    //robot.clean();
-                                    //DeviceUtilities.robot = null;
-                                    strJSON = null;
-
-                                    //safety-net
-                                    //if (notifManager != null) {
-                                    //notifManager.cancelAll();
-                                    //}
-
-                                    // safety-net
-                                    if (btAdapter != null) {
-                                        //starting scan on service thread
-                                        while (!(btAdapter.startLeScan(leCallback))) {
-                                            try {
-                                                Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
-                                                sleep(500);
-                                            } catch (InterruptedException ex) {
-                                                Log.e("onDisconnect", "Service thread failed to sleep.");
-                                            }
+                                        // end transfer review if we disconnected during transfer process
+                                        if (!statusReviewOff) {
+                                            statusReview.close();
+                                            statusReview = null;
                                         }
-                                        isScanning = true;
+
+                                        // end notification read (safety if we disconnect during transfer)
+                                        if (readNotifications != null) {
+                                            readNotifications.close();
+                                        }
+
+                                        //**DEMO** end tracking of robot proximity
+                                        //tracker.close();
+                                        //tracker = null;
+
+                                        //DeviceUtilities.clear();
+                                        //arAdapter.clear();
+                                        //robot.clean();
+                                        //DeviceUtilities.robot = null;
+                                        strJSON = null;
+
+                                        //safety-net
+                                        //if (notifManager != null) {
+                                        //notifManager.cancelAll();
+                                        //}
+
+                                        // safety-net
+                                        if (btAdapter != null) {
+                                            //starting scan on service thread
+                                            while (!(btAdapter.startLeScan(leCallback))) {
+                                                try {
+                                                    Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
+                                                    sleep(500);
+                                                } catch (InterruptedException ex) {
+                                                    Log.e("onDisconnect", "Service thread failed to sleep.");
+                                                }
+                                            }
+                                            isScanning = true;
+                                            robotUpdateClock.startTimer();
+                                        }
+                                    } catch (NullPointerException ex) {
+                                        StringWriter stringWriter = new StringWriter();
+                                        PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                        ex.printStackTrace(printWriter);
+                                        Log.e("Controller.onDisconnect", stringWriter.toString());
                                     }
                                 }
                             }
@@ -439,7 +453,7 @@ public class ControllerService extends Service {
                                 }
                             }
                         } else {
-                            Log.e("onCharacteristicRead", "Reading failed");
+                            Log.e("onCharacteristicRead", "Reading failed: " + characteristic.getUuid().toString());
                         }
                     }
 
@@ -554,10 +568,20 @@ public class ControllerService extends Service {
                                     // update complete
                                     // convert our string into JSON
                                     try {
-                                        JSONObject jsonStatus = new JSONObject(strJSON);
+                                        JSONObject jsonMessage = new JSONObject(strJSON);
                                         strJSON = null;
 
-                                        if (jsonStatus.getString("msgtype").equals("ack")) {
+                                        // sort closest to furthest
+                                        modelLock.lock();
+                                        Collections.sort(model, new Comparator<Robot>() {
+                                            @Override
+                                            public int compare(Robot lhs, Robot rhs) {
+                                                return rhs.getProximity() - lhs.getProximity();
+                                            }
+                                        });
+                                        modelLock.unlock();
+
+                                        if (jsonMessage.getString("msgtype").equals("ack")) {
                                             // no update
                                             modelLock.lock();
                                             setModel(model);
@@ -571,9 +595,14 @@ public class ControllerService extends Service {
                                         modelLock.lock();
                                         for (Robot bot : model) {
                                             if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
-                                                bot.setName(jsonStatus.getString("name"));
-                                                bot.setCurrState(jsonStatus.getString("state"));
-                                                bot.setModel(jsonStatus.getString("model"));
+                                                // get this robot's name
+                                                bot.setName(jsonMessage.getString("name"));
+                                                // get it's state
+                                                bot.setCurrState(jsonMessage.getString("state"));
+                                                // get it's make
+                                                bot.setModel(jsonMessage.getString("model"));
+                                                // give robot the progression
+                                                bot.setProgression(jsonMessage.getJSONArray("progression"));
                                                 break;
                                             }
                                         }
@@ -819,7 +848,7 @@ public class ControllerService extends Service {
                         if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
                             //DeviceUtilities item = new DeviceUtilities(device, rssi);
                             robotsAsBTDevices.put(device, rssi);
-                            robotUpdateClock.restartTimer();
+                            robotUpdateClock.stopTimer();
                             //initial connection
                             connect(device);
                         } else {
@@ -1284,6 +1313,10 @@ public class ControllerService extends Service {
 
                 String uuidOfCharacteristic = chara.getUuid().toString();
 
+                if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Read")) {
+                    continue;
+                }
+
                 // Attempt to read this characteristic
                 if (currConnectedDevice.readCharacteristic(chara)) {
                     try {
@@ -1383,7 +1416,7 @@ public class ControllerService extends Service {
             for (Robot bot : model) {
                 if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
                     bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
-                    model.set(model.indexOf(bot), (Robot) bot.clone());
+                    model.set(model.indexOf(bot), (Robot)bot.clone());
                     alreadyContained = true;
                     break;
                 }
@@ -1401,7 +1434,10 @@ public class ControllerService extends Service {
                 modelLock.unlock();
             }
         } catch (NullPointerException ex) {
-            Log.e("makeRobot()", "No device connected");
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+            ex.printStackTrace(printWriter);
+            Log.e("makeRobot()", stringWriter.toString());
             return;
         }
 
@@ -1512,7 +1548,7 @@ public class ControllerService extends Service {
                 while (notificationQueue.isEmpty() && keepAlive) {
                     notificationQueueLock.unlock();
                     try {
-                        sleep(100);
+                        sleep(20);
                     } catch (Exception ex) {
                         Log.e("Controller.Read", "Failed sleep");
                     }
@@ -1696,19 +1732,33 @@ public class ControllerService extends Service {
                 public void run() {
                     robotsAsBTDevices.clear();
                 }
-            }, 3000);
+            }, 2000);
         }
 
-        public void restartTimer() {
+        public void stopTimer() {
             timer.cancel();
+        }
+
+        public void startTimer() {
             timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     robotsAsBTDevices.clear();
                 }
-            }, 3000);
+            }, 2000);
         }
+    }
+
+
+    /**
+     * used by views to let controller know to make a reply to a robot
+     * @param robotId is the mac address associated with the robot
+     * @param msgId is the identifier number associated with the progression element
+     * @param response is the entire response element containing the id and value properties
+     */
+    public static void addToReplyQueue(String robotId, String msgId, JSONObject response) {
+
     }
 
 

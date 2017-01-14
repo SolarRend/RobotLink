@@ -13,6 +13,8 @@ import android.util.Log;
 import android.widget.ImageView;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class NotificationViewService extends Service {
     private NotificationManager notifManager; // manager object for notification related events
@@ -24,8 +26,10 @@ public class NotificationViewService extends Service {
     @Override
     public void onCreate() {
         Log.i("NotifView.onCreate()", "Service Created");
-        notifManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         model = ControllerService.getModel();
+
         // starting model update
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
@@ -69,6 +73,11 @@ public class NotificationViewService extends Service {
                     model = ControllerService.getModel();
                     Log.i("NotifView.Update", "Model changed");
 
+                    //reverse this copy of the model to ensure closest robot is the top notif
+                    Collections.reverse(model);
+
+                    int id = 0;
+
                     for (Robot bot : model) {
                         // building notification
                         // builder object
@@ -78,18 +87,19 @@ public class NotificationViewService extends Service {
                         notif.setSmallIcon(bot.getImage());
 
                         // setting title of notification
-                        notif.setContentTitle("A robot has been found.");
+                        notif.setContentTitle(bot.getName());
 
                         // setting textual content of notification
-                        notif.setContentText(bot.getName() + " wants to talk.");
+                        //notif.setContentText("Autonomous system is nearby.\nTap for more info");
 
                         // Making notification non removable by swiping or clearing
-                        notif.setOngoing(true);
+                        //notif.setOngoing(true);
 
                         // Big style notification
                         notif.setStyle((new NotificationCompat.BigTextStyle()).bigText(
-                                bot.getName() + " wants to talk!"
+                                "Autonomous system is nearby.\nTap for more information"
                         ));
+
 
 
                         // setting clickable action of notification
@@ -97,7 +107,7 @@ public class NotificationViewService extends Service {
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.putExtra("EXTRA_ROBOT_ID", bot.getId());
                         notif.setContentIntent(PendingIntent.getActivity(NotificationViewService.this,
-                                0, intent,
+                                0/*change*/, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT));
 
                         // Adding dismiss button
@@ -107,7 +117,9 @@ public class NotificationViewService extends Service {
                         notif.addAction(R.drawable.dismiss, "Dismiss", PendingIntent.getBroadcast(NotificationViewService.this,
                                 0, dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT));
                         */
-                        notifManager.notify(1, notif.build());
+                        notifManager.notify(0/*change*/, notif.build());
+                        //Log.i("NotifView.Update", bot.getName() + ": " + bot.getNotificationID());
+                        id++;
                     }
                 }
 

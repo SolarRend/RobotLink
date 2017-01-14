@@ -1,5 +1,7 @@
 package uml_robotics.robotnexus;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -34,10 +36,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //boot up service
-        controllerIntent = new Intent(this, ControllerService.class);
-        this.startService(controllerIntent);
-        Log.i("MAIN.onCreate()", "Started Controller");
+
+        ControllerService controllerService = new ControllerService();
+
+        if (!(isServiceRunning(controllerService.getClass()))) {
+            //boot up controller
+            controllerIntent = new Intent(this, ControllerService.class);
+            this.startService(controllerIntent);
+            Log.i("MAIN.onCreate()", "Started Controller");
+        }
+
 
 
         // starting the *real main activity* which will be a navigation screen for all robots in the area
@@ -48,8 +56,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //this.stopService(controllerIntent);
-        //Log.i("MAIN.onDestroy()", "Stopped Controller");
+        this.stopService(controllerIntent);
+        Log.i("MAIN.onDestroy()", "Stopped Controller");
 
+    }
+
+    // helper method for determining if a service (owned by robot nexus) is running
+    private boolean isServiceRunning(Class serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

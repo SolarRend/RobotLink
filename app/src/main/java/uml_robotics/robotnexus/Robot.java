@@ -2,13 +2,15 @@ package uml_robotics.robotnexus;
 
 import android.graphics.Bitmap;
 
+import org.json.JSONArray;
+
 /**
  * Robot object used by the model and controller
  */
 
 
 public class Robot {
-    public enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
+    private enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
     private String name; // name of robot
     private Integer image; // image id of what robot looks like
     private boolean dismissed = false; // for dismissed robots
@@ -16,12 +18,21 @@ public class Robot {
     private String id; //hidden identifier for a bot
     private String model; // the make of a robot
     private State currState;
+    private JSONArray progression = null; // most recent progression for this robot
 
 
     public Robot(int rssi, String id) {
         this.proximity = rssi;
         this.id = id;
         this.currState = State.NOT_SET;
+    }
+
+    public void setProgression(JSONArray progression) {
+        this.progression = progression;
+    }
+
+    public JSONArray getProgression() {
+        return progression;
     }
 
     public void setProximity(int proximity) {
@@ -95,6 +106,7 @@ public class Robot {
         robot.setCurrState(this.getCurrState());
         robot.setModel(this.getModel());
         robot.setImage(this.getImage());
+        robot.setProgression(this.getProgression());
         return robot;
     }
 
