@@ -1305,13 +1305,16 @@ public class ControllerService extends Service {
     private void makeRobot() {
 
         try {
-            ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
-            ArrayList<BluetoothGattService> serviceList = new ArrayList<>();
+            //ArrayList<BluetoothGattCharacteristic> allSupportedCharacteristics = new ArrayList<>();
+            ArrayList<BluetoothGattService> serviceList = (ArrayList<BluetoothGattService>)currConnectedDevice.getServices();
 
-            serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
+            // characteristic we read from to start notifications
+            BluetoothGattCharacteristic packetRead = null;
 
+            // characteristic that indicates missed packets
+            BluetoothGattCharacteristic missingPacketRead = null;
 
-            // getting all supported characteristics from the services
+            // get all supported characteristics from the services
             for (BluetoothGattService service : serviceList) {
 
                 String uuidOfService = service.getUuid().toString();
@@ -1321,10 +1324,12 @@ public class ControllerService extends Service {
                     ArrayList<BluetoothGattCharacteristic> charList = ((ArrayList<BluetoothGattCharacteristic>) service.getCharacteristics());
 
                     for (BluetoothGattCharacteristic chara : charList) {
+
                         String uuidOfCharacteristic = chara.getUuid().toString();
 
-
                         if (supportedCharas.containsKey(uuidOfCharacteristic)) {
+
+                            /*
                             // checking if characteristic supports notification or indication (one or the other)
                             if ((chara.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
 
@@ -1348,15 +1353,22 @@ public class ControllerService extends Service {
                                     Log.e("makeRobot()", "failed to take from blocking queue");
                                 }
                             }
+                            */
 
 
                             if (supportedCharas.get(uuidOfCharacteristic).equals("Total Number of Packets")) {
                                 totalNumOfPacketsWrite = chara;
                             } else if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Write")) {
                                 packetWrite = chara;
+                            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
+                                missingPacketWrite = chara;
+                            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Read")) {
+                                packetRead = chara;
+                            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Read")) {
+                                missingPacketRead = chara;
                             }
 
-                            allSupportedCharacteristics.add(chara);
+                            //allSupportedCharacteristics.add(chara);
                         }
                     }
                 }
@@ -1370,6 +1382,14 @@ public class ControllerService extends Service {
                 ReplyPackage replyPackage = replyQueue.remove(0);
                 replyQueueLock.unlock();
 
+                //enable indications
+                subscribe(missingPacketRead, true, 1, currConnectedDevice);
+                try {
+                    makeRobotBlock.take();
+                } catch (InterruptedException ex) {
+                    Log.e("makeRobot()", "failed to take from blocking queue");
+                }
+
                 // call handleReplyMessage to send reply to robot
                 handleReplyMessage(replyPackage);
                 replyQueueLock.lock();
@@ -1377,6 +1397,28 @@ public class ControllerService extends Service {
             replyQueueLock.unlock();
 
 
+            //enable notifications
+            subscribe(packetRead, true, 0, currConnectedDevice);
+            try {
+                makeRobotBlock.take();
+            } catch (InterruptedException ex) {
+                Log.e("makeRobot()", "failed to take from blocking queue");
+            }
+
+            // read packetRead characteristic to start notifications
+            if (currConnectedDevice.readCharacteristic(packetRead)) {
+                try {
+                    makeRobotBlock.take();
+                } catch (Exception ex) {
+                    Log.e("makeRobot()", "failed to take from blocking queue");
+                }
+            }
+
+
+
+
+
+            /*
             for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
 
                 String uuidOfCharacteristic = chara.getUuid().toString();
@@ -1395,14 +1437,11 @@ public class ControllerService extends Service {
                 }
 
 
-                if (supportedCharas.get(uuidOfCharacteristic).equals("Missing Packet Write")) {
-                    missingPacketWrite = chara;
-                }
                 //Log.i("Controller.makeRobot()", supportedServices.get(uuidOfService)
                 //       + ": " + supportedCharas.get(uuidOfCharacteristic) +
                 //      " = " +(canBeRead ? getCharaValue(chara) : "Cannot be read"));
 
-            }
+            } */
 
 
 
