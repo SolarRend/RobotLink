@@ -1,5 +1,6 @@
 package uml_robotics.robotnexus;
 
+import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -31,6 +32,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -101,11 +103,18 @@ public class ControllerService extends Service {
     // used to ensure all robots in vicinity get updated once
     private RobotUpdateClock robotUpdateClock;
     private BlockingQueue<Integer> characteristicWriteBlock = null;
+    // Controller only uses this to ensure notifications are removed on destroy
+    private NotificationManager notifManager;
+    // queue for replies waiting to be sent back to robot
+    private static ArrayList<ReplyPackage> replyQueue = null;
+    private static ReentrantLock replyQueueLock = null; // lock for accessing reply queue
     /*
      * characteristics/values of our currently connected robot
      */
     private int totalNumOfPackets = -1;
     private BluetoothGattCharacteristic missingPacketWrite = null;
+    private BluetoothGattCharacteristic totalNumOfPacketsWrite = null;
+    private BluetoothGattCharacteristic packetWrite = null;
     /*
      * end fields for currently connected robot
      */
@@ -147,6 +156,9 @@ public class ControllerService extends Service {
                 notifViewIntent = new Intent(ControllerService.this, NotificationViewService.class);
                 ControllerService.this.startService(notifViewIntent);
                 Log.i("Controller.onCreate()", "Started NotificationViewService");
+
+                // get notification manager
+                notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 
                 //Getting app's btAdapter
                 btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -222,6 +234,12 @@ public class ControllerService extends Service {
                 handleScanCallbacks = new HandleScanCallbacks();
                 handleScanCallbacks.start();
 
+                //queue for replies back to server
+                replyQueue = new ArrayList<ReplyPackage>();
+
+                // lock for the reply queue -> Controller and RobotLink both access
+                replyQueueLock = new ReentrantLock();
+
                 // implementing callback for startLeScan()
                 leCallback = new BluetoothAdapter.LeScanCallback() {
 
@@ -261,7 +279,7 @@ public class ControllerService extends Service {
                                     Log.e("onDisconnect", "closing connection and restarting bluetooth");
                                     Log.e("onDisconnect", "Status: " + status);
                                     Log.e("onDisconnect", "newState: " + newState);
-                                    gatt.disconnect();
+                                    //gatt.disconnect();
                                     gatt.close();
                                     currConnectedDevice = null;
                                     isConnected = false;
@@ -501,6 +519,12 @@ public class ControllerService extends Service {
                                 // this characteristic is sending update - add to queue
                                 notificationQueue.add(characteristic.getValue());
                                 notificationQueueLock.unlock();
+
+                            } else if (characteristic.
+                                    getUuid().toString().equals("00002a13-30de-4630-9b59-27228d45bf11")) {
+                                // this characteristic is saying if they missed a packet or not
+                                Log.i("onCharaChange", "Indicate: "
+                                        + Arrays.toString(characteristic.getValue()));
                             }
 
                     }
@@ -711,6 +735,9 @@ public class ControllerService extends Service {
             readNotifications.close();
         }
 
+        // destroy any active notifications
+        notifManager.cancelAll();
+
         handleScanCallbacks.close();
 
         // cleaning up
@@ -776,6 +803,7 @@ public class ControllerService extends Service {
     private class HandleScanCallbacks extends Thread {
         final String TAG = "Controller.Callbacks";
         private boolean keepAlive = true;
+        private String addressOfRobotNeedingReply = null;
 
         @Override
         public void run() {
@@ -838,6 +866,23 @@ public class ControllerService extends Service {
                     //}
                     //}
 
+
+                    // check to see if there is a reply job in queue
+                    replyQueueLock.lock();
+                    if (!(replyQueue.isEmpty())) {
+                        // there's a reply job waiting
+                        if ((replyQueue.get(0).getRobotId()).equals(device.getAddress())) {
+                            // this device is the robot that needs a reply
+                            // so connect right away
+                            robotsAsBTDevices.put(device, rssi);
+                            robotUpdateClock.stopTimer();
+                            connect(device);
+                        }
+                    }
+                    replyQueueLock.unlock();
+
+
+                    // check if this device has been connected to recently
                     if (!robotsAsBTDevices.containsKey(device)) {
 
                         List<String> listOfStructures = parseScanRecord(scanRecord);
@@ -1266,6 +1311,7 @@ public class ControllerService extends Service {
             serviceList = (ArrayList<BluetoothGattService>) currConnectedDevice.getServices();
 
 
+            // getting all supported characteristics from the services
             for (BluetoothGattService service : serviceList) {
 
                 String uuidOfService = service.getUuid().toString();
@@ -1303,11 +1349,33 @@ public class ControllerService extends Service {
                                 }
                             }
 
+
+                            if (supportedCharas.get(uuidOfCharacteristic).equals("Total Number of Packets")) {
+                                totalNumOfPacketsWrite = chara;
+                            } else if (supportedCharas.get(uuidOfCharacteristic).equals("Packet Write")) {
+                                packetWrite = chara;
+                            }
+
                             allSupportedCharacteristics.add(chara);
                         }
                     }
                 }
             }
+
+            // handle reply to robot if there is one in the reply queue
+            replyQueueLock.lock();
+            if (!(replyQueue.isEmpty())) {
+
+                // get reply package
+                ReplyPackage replyPackage = replyQueue.remove(0);
+                replyQueueLock.unlock();
+
+                // call handleReplyMessage to send reply to robot
+                handleReplyMessage(replyPackage);
+                replyQueueLock.lock();
+            }
+            replyQueueLock.unlock();
+
 
             for (BluetoothGattCharacteristic chara : allSupportedCharacteristics) {
 
@@ -1755,13 +1823,138 @@ public class ControllerService extends Service {
      * used by views to let controller know to make a reply to a robot
      * @param robotId is the mac address associated with the robot
      * @param msgId is the identifier number associated with the progression element
-     * @param response is the entire response element containing the id and value properties
+     * @param responseId is response id of the button the user tapped
      */
-    public static void addToReplyQueue(String robotId, String msgId, JSONObject response) {
+    public static void addToReplyQueue(String robotId, String msgId, String responseId) {
 
+
+        //Log.i("Controller.addReply", robotId + " " + msgId + " " + responseId.toString());
+        replyQueueLock.lock();
+        replyQueue.add(new ReplyPackage(robotId, msgId, responseId));
+        replyQueueLock.unlock();
+    }
+
+    /**
+     * used to package all relevant data for a reply to a robot
+     */
+    private static class ReplyPackage {
+        private String robotId;
+        private String msgId;
+        private String responseId;
+
+        public ReplyPackage(String robotId, String msgId, String responseId) {
+            this.robotId = robotId;
+            this.msgId = msgId;
+            this.responseId = responseId;
+        }
+
+        public String getResponseId() {
+            return responseId;
+        }
+
+        public String getMsgId() {
+            return msgId;
+        }
+
+        public String getRobotId() {
+            return robotId;
+        }
     }
 
 
+    /**
+     * responsible for sending reply message to server
+     * @param replyPackage contains the unique contents for the reply
+     */
+    private void handleReplyMessage(ReplyPackage replyPackage) {
+        final String TAG = "Controller.reply()";
+
+        /**
+         * prepare json reply
+         */
+        JSONObject jsonReply = new JSONObject();
+        try {
+            jsonReply.put("msgtype", "reply");
+
+            JSONObject msgIdAndResponseId = new JSONObject();
+            msgIdAndResponseId.put("id", replyPackage.getMsgId());
+            msgIdAndResponseId.put("value", replyPackage.getResponseId());
+
+            JSONArray responsesArray = new JSONArray();
+            responsesArray.put(0, msgIdAndResponseId);
+
+            jsonReply.put("responses", responsesArray);
+
+            Log.i(TAG, jsonReply.toString(2));
+        } catch (JSONException ex) {
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+            ex.printStackTrace(printWriter);
+            Log.e(TAG, stringWriter.toString());
+        }
+
+        /**
+         * convert reply into byte array
+         */
+        byte[] byteReply = (jsonReply.toString().getBytes(StandardCharsets.UTF_8));
+        Log.i(TAG, byteReply.length + ", is the length of byte array");
+
+        /**
+         * send total number of packets to server
+         */
+        int totalNumberOfPackets = (int) Math.ceil(((double) byteReply.length / 19));
+        Log.i(TAG, totalNumberOfPackets + " is the number of packets going to be sent");
+
+        byte[] byteTotal = {(byte) (totalNumberOfPackets & 0xFF)};
+        totalNumOfPacketsWrite.setValue(byteTotal);
+        currConnectedDevice.writeCharacteristic(totalNumOfPacketsWrite);
+        try {
+            characteristicWriteBlock.take();
+        } catch (InterruptedException ex) {
+            Log.e(TAG, "Failed to take from blocking queue");
+        }
+        Log.i(TAG, byteTotal[0] + " after block");
+
+
+        /**
+         * prepare packets and send them to server one at a time
+         */
+        int totalNumOfBytes = byteReply.length;
+        for (int i = 0; i < totalNumberOfPackets; i++) {
+
+            if (totalNumOfBytes >= 20) {
+                byte[] packetSend = new byte[20];
+                packetSend[0] = (byte) (i & 0xFF);
+                System.arraycopy(byteReply, i * 19, packetSend, 1, (packetSend.length - 1));
+                Log.i(TAG, new String(packetSend));
+
+                packetWrite.setValue(packetSend);
+                currConnectedDevice.writeCharacteristic(packetWrite);
+                try {
+                    characteristicWriteBlock.take();
+                } catch (InterruptedException ex) {
+                    Log.e(TAG, "Failed to take from blocking queue");
+                }
+
+                totalNumOfBytes = (totalNumOfBytes - 19);
+
+            } else {
+
+                byte[] packetSend = new byte[totalNumOfBytes + 1];
+                packetSend[0] = (byte) (i & 0xFF);
+                System.arraycopy(byteReply, i * 19, packetSend, 1, (packetSend.length - 1));
+                Log.i(TAG, new String(packetSend));
+
+                packetWrite.setValue(packetSend);
+                currConnectedDevice.writeCharacteristic(packetWrite);
+                try {
+                    characteristicWriteBlock.take();
+                } catch (InterruptedException ex) {
+                    Log.e(TAG, "Failed to take from blocking queue");
+                }
+            }
+        }
+    }
 
     /**
      * **************************************

@@ -339,12 +339,14 @@ public class RobotLink extends AppCompatActivity {
             return;
         }
 
-        // loop through all objects in progression
+        /**
+         * loop through all objects in progression
+         */
         for (int i = 0; i < progression.length(); i++) {
 
             try {
                 // get this element in the progression
-                JSONObject progressionElement = progression.getJSONObject(i);
+                final JSONObject progressionElement = progression.getJSONObject(i);
 
                 //display the content
 
@@ -379,9 +381,12 @@ public class RobotLink extends AppCompatActivity {
                 buttonLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
                 buttonLayout.setLayoutParams(buttonLayoutParams);
 
+                /**
+                 * loop through all responses and make buttons for them
+                 */
                 for (int j = 0; j < responses.length(); j++) {
                     // get this element in the response
-                    JSONObject responseElement = responses.getJSONObject(j);
+                    final JSONObject responseElement = responses.getJSONObject(j);
 
                     //parameters for button view
                     LinearLayout.LayoutParams buttonParams1 = new LinearLayout.LayoutParams(
@@ -398,11 +403,18 @@ public class RobotLink extends AppCompatActivity {
                     responseButton1.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-
+                            try {
+                                ControllerService.addToReplyQueue(robot.getId(),
+                                        progressionElement.getString("msgid"), responseElement.getString("id"));
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("RobotLink.Progression", stringWriter.toString());
+                            }
                         }
                     });
                     buttonLayout.addView(responseButton1);
-
                 }
 
                 ((LinearLayout)findViewById(R.id.scroll_layout)).addView(buttonLayout);

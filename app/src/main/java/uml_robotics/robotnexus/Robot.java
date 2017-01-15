@@ -18,7 +18,7 @@ public class Robot {
     private String id; //hidden identifier for a bot
     private String model; // the make of a robot
     private State currState;
-    private JSONArray progression = null; // most recent progression for this robot
+    private JSONArray progression = new JSONArray(); // most recent progression for this robot
 
 
     public Robot(int rssi, String id) {
