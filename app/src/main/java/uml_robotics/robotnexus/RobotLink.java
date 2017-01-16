@@ -36,6 +36,7 @@ public class RobotLink extends AppCompatActivity {
     private Robot robot = null; // the robot we are linked with
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
     private Handler robotLinkHandler; //handler to manipulate robot link UI
+    private LinearLayout scrollLayout; // view for appending progressions on
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,17 +81,18 @@ public class RobotLink extends AppCompatActivity {
         ImageView statusImage = (ImageView)findViewById(R.id.statusIconView);
         String status = robot.getCurrState();
         if (status.equals("ok")) {
-            statusImage.setImageResource(R.drawable.ok);
+            statusImage.setImageResource(R.drawable.svg_ok);
         } else if (status.equals("safe")) {
-            statusImage.setImageResource(R.drawable.safe);
+            statusImage.setImageResource(R.drawable.svg_safe);
         } else if (status.equals("dangerous")) {
-            statusImage.setImageResource(R.drawable.dangerous);
+            statusImage.setImageResource(R.drawable.svg_dangerous);
         } else if (status.equals("help")) {
-            statusImage.setImageResource(R.drawable.help);
+            statusImage.setImageResource(R.drawable.svg_help);
         } else if (status.equals("off")) {
-            statusImage.setImageResource(R.drawable.off);
+            statusImage.setImageResource(R.drawable.svg_off);
         }
 
+        scrollLayout = (LinearLayout)findViewById(R.id.scroll_layout);
 
         displayProgression(robot.getProgression());
 
@@ -299,18 +301,18 @@ public class RobotLink extends AppCompatActivity {
                                     ImageView statusImage = (ImageView)findViewById(R.id.statusIconView);
                                     String status = robot.getCurrState();
                                     if (status.equals("ok")) {
-                                        statusImage.setImageResource(R.drawable.ok);
+                                        statusImage.setImageResource(R.drawable.svg_ok);
                                     } else if (status.equals("safe")) {
-                                        statusImage.setImageResource(R.drawable.safe);
+                                        statusImage.setImageResource(R.drawable.svg_safe);
                                     } else if (status.equals("dangerous")) {
-                                        statusImage.setImageResource(R.drawable.dangerous);
+                                        statusImage.setImageResource(R.drawable.svg_dangerous);
                                     } else if (status.equals("help")) {
-                                        statusImage.setImageResource(R.drawable.help);
+                                        statusImage.setImageResource(R.drawable.svg_help);
                                     } else if (status.equals("off")) {
-                                        statusImage.setImageResource(R.drawable.off);
+                                        statusImage.setImageResource(R.drawable.svg_off);
                                     }
 
-                                    ((LinearLayout)findViewById(R.id.scroll_layout)).removeAllViews();
+                                    scrollLayout.removeAllViews();
 
                                     displayProgression(robot.getProgression());
                                 }
@@ -417,7 +419,7 @@ public class RobotLink extends AppCompatActivity {
                     buttonLayout.addView(responseButton1);
                 }
 
-                ((LinearLayout)findViewById(R.id.scroll_layout)).addView(buttonLayout);
+                scrollLayout.addView(buttonLayout);
 
             } catch (JSONException ex) {
                 StringWriter stringWriter = new StringWriter();

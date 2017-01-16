@@ -1,10 +1,13 @@
 package uml_robotics.robotnexus;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -15,6 +18,8 @@ import android.widget.ImageView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+
+import static java.lang.Thread.sleep;
 
 public class NotificationViewService extends Service {
     private NotificationManager notifManager; // manager object for notification related events
@@ -33,6 +38,8 @@ public class NotificationViewService extends Service {
         // starting model update
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
+
+
     }
 
     @Override
@@ -76,30 +83,32 @@ public class NotificationViewService extends Service {
                     //reverse this copy of the model to ensure closest robot is the top notif
                     Collections.reverse(model);
 
-                    int id = 0;
-
+                    int id = 0; // for content intent and notification
+                    ArrayList<Notification> closestThree = new ArrayList<>(3);
                     for (Robot bot : model) {
                         // building notification
                         // builder object
-                        NotificationCompat.Builder notif = new NotificationCompat.Builder(NotificationViewService.this);
+                        Notification.Builder notif = new Notification.Builder(NotificationViewService.this);
+
+                        notif.setLargeIcon(BitmapFactory.decodeResource(getResources(), bot.getImage()));
 
                         // setting icon of notification
-                        notif.setSmallIcon(bot.getImage());
+                        notif.setSmallIcon(R.mipmap.ic_launcher);
 
                         // setting title of notification
                         notif.setContentTitle(bot.getName());
 
-                        // setting textual content of notification
-                        //notif.setContentText("Autonomous system is nearby.\nTap for more info");
+                        // setting textual content of notification - when notif isnt expanded
+                        notif.setContentText("Autonomous system is nearby.");
 
-                        // Making notification non removable by swiping or clearing
-                        //notif.setOngoing(true);
-
-                        // Big style notification
-                        notif.setStyle((new NotificationCompat.BigTextStyle()).bigText(
+                        // Big style notification text
+                        notif.setStyle((new Notification.BigTextStyle()).bigText(
                                 "Autonomous system is nearby.\nTap for more information"
                         ));
 
+                        //notif.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(
+                          //      BitmapFactory.decodeResource(getResources(), R.drawable.dangerous)
+                        //).setSummaryText("Autonomous system is nearby.\nTap for more information"));
 
 
                         // setting clickable action of notification
@@ -107,7 +116,7 @@ public class NotificationViewService extends Service {
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.putExtra("EXTRA_ROBOT_ID", bot.getId());
                         notif.setContentIntent(PendingIntent.getActivity(NotificationViewService.this,
-                                0/*change*/, intent,
+                                id, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT));
 
                         // Adding dismiss button
@@ -116,10 +125,19 @@ public class NotificationViewService extends Service {
                         dismissIntent.setAction(DISMISS);
                         notif.addAction(R.drawable.dismiss, "Dismiss", PendingIntent.getBroadcast(NotificationViewService.this,
                                 0, dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-                        */
-                        notifManager.notify(0/*change*/, notif.build());
-                        //Log.i("NotifView.Update", bot.getName() + ": " + bot.getNotificationID());
+                        *///notifManager.notify(id/*change*/, notif.build());
+
+
+                        closestThree.add(notif.build());
                         id++;
+                        if (id == 3) {
+                            break;
+                        }
+                    }
+
+                    // notify
+                    for (int i = (closestThree.size()-1); i > -1; i--) {
+                        notifManager.notify(i, closestThree.remove(i));
                     }
                 }
 

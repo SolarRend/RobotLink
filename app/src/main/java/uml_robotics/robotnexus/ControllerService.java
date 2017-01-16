@@ -637,7 +637,10 @@ public class ControllerService extends Service {
                                         //robotsAsBTDevices.clear();
                                         currConnectedDevice.disconnect();
                                     } catch (JSONException ex) {
-                                        Log.e("UPDATE.receiver", "Failed to convert to JSON");
+                                        StringWriter stringWriter = new StringWriter();
+                                        PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                        ex.printStackTrace(printWriter);
+                                        Log.e("UPDATE.receiver", stringWriter.toString());
                                     }
                                 }
                             }
