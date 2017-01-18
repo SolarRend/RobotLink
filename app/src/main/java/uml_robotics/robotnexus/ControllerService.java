@@ -9,7 +9,13 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -63,8 +69,10 @@ public class ControllerService extends Service {
     private ReentrantLock modelLock; // mutex for tampering with copy of the model
     private Boolean btInitOff = false; //used for checking initial state of user's bluetooth
     private BluetoothAdapter btAdapter;  //Adapter used for most bluetoothy stuff
+    private BluetoothLeScanner leScanner; // used for scanning
+    private ScanCallback scanCallback;  // callback for leScannner scans
     // callback that triggers when le devices are found by startLeScan()
-    private BluetoothAdapter.LeScanCallback leCallback;
+   // private BluetoothAdapter.LeScanCallback leCallback;
     // callback for gattserver events
     private BluetoothGattCallback btGattCallback;
     private boolean isScanning = false; //for tracking if app is scanning or not
@@ -161,6 +169,7 @@ public class ControllerService extends Service {
                 notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 
                 //Getting app's btAdapter
+                //BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(BLUETOOTH_SERVICE);
                 btAdapter = BluetoothAdapter.getDefaultAdapter();
 
                 //Turning on bluetooth if it is currently off
@@ -240,7 +249,20 @@ public class ControllerService extends Service {
                 // lock for the reply queue -> Controller and RobotLink both access
                 replyQueueLock = new ReentrantLock();
 
+
+                //implementing callback startScan()
+                scanCallback = new ScanCallback() {
+                    @Override
+                    public void onScanResult(int callbackType, ScanResult result) {
+                        scanCallbackPackagesLock.lock();
+                        scanCallbackPackages.add(new ScanCallbackPackage(result.getDevice(),
+                                result.getRssi(), result.getScanRecord().getBytes()));
+                        scanCallbackPackagesLock.unlock();
+                    }
+                };
+
                 // implementing callback for startLeScan()
+                /*
                 leCallback = new BluetoothAdapter.LeScanCallback() {
 
                     @Override
@@ -261,7 +283,7 @@ public class ControllerService extends Service {
                            // }
                         //});
                     }
-                };
+                }; */
 
                 btGattCallback = new BluetoothGattCallback() {
                     @Override
@@ -279,7 +301,7 @@ public class ControllerService extends Service {
                                     Log.e("onDisconnect", "closing connection and restarting bluetooth");
                                     Log.e("onDisconnect", "Status: " + status);
                                     Log.e("onDisconnect", "newState: " + newState);
-                                    //gatt.disconnect();
+                                    gatt.disconnect();
                                     gatt.close();
                                     currConnectedDevice = null;
                                     isConnected = false;
@@ -295,7 +317,7 @@ public class ControllerService extends Service {
                                             }
                                         }
                                         //reacquire bt adapter
-                                        btAdapter = BluetoothAdapter.getDefaultAdapter();
+                                        //btAdapter = BluetoothAdapter.getDefaultAdapter();
                                         btAdapter.enable();
                                         robotsAsBTDevices.clear();
                                         onStartCommandSeparateThread();
@@ -378,7 +400,17 @@ public class ControllerService extends Service {
 
                                         // safety-net
                                         if (btAdapter != null) {
+                                            leScanner.startScan(null,
+                                                    new ScanSettings.Builder()
+                                                            .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                                                            //.setReportDelay(0)
+                                                            //.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                                                            //.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                                                            //.setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
+                                                            .build(),
+                                                    scanCallback);
                                             //starting scan on service thread
+                                            /*
                                             while (!(btAdapter.startLeScan(leCallback))) {
                                                 try {
                                                     Log.i("onDisconnect", "Failed to start scan. Re-attempting to start scan");
@@ -386,7 +418,7 @@ public class ControllerService extends Service {
                                                 } catch (InterruptedException ex) {
                                                     Log.e("onDisconnect", "Service thread failed to sleep.");
                                                 }
-                                            }
+                                            }*/
                                             isScanning = true;
                                             robotUpdateClock.startTimer();
                                         }
@@ -679,13 +711,27 @@ public class ControllerService extends Service {
         // enabling bluetooth is not a blocking call so we need to make sure bt is on
         while (!btAdapter.isEnabled()) {
             try {
+                btAdapter.enable();
                 Log.i(TAG, "Putting service thread to sleep");
                 sleep(500);
             } catch (InterruptedException ex) {
                 Log.e(TAG, "Service thread failed to sleep.");
             }
         }
+        // get scanner for starting and stopping le scanning -> looks like bt has to be enabled first
+        leScanner = btAdapter.getBluetoothLeScanner();
+
         //start scanning
+        leScanner.startScan(null,
+                new ScanSettings.Builder()
+                        .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                        //.setReportDelay(0)
+                        //.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                        //.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                        //.setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
+                        .build(),
+                scanCallback);
+        /*
         while (!(btAdapter.startLeScan(leCallback))) {
             try {
                 Log.i(TAG, "Failed to start scan. Re-attempting to start scan");
@@ -693,7 +739,7 @@ public class ControllerService extends Service {
             } catch (InterruptedException ex) {
                 Log.e(TAG, "Service thread failed to sleep.");
             }
-        }
+        } */
         isScanning = true;
     }
 
@@ -714,7 +760,8 @@ public class ControllerService extends Service {
             serviceHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    btAdapter.stopLeScan(leCallback);
+                    //btAdapter.stopLeScan(leCallback);
+                    leScanner.stopScan(scanCallback);
                 }
             });
         }
@@ -746,7 +793,7 @@ public class ControllerService extends Service {
         // cleaning up
         btAdapter = null;
         uuidOfInterest = null;
-        leCallback = null;
+        scanCallback = null;
         btGattCallback = null;
         supportedServices = null;
         supportedCharas = null;
@@ -801,7 +848,7 @@ public class ControllerService extends Service {
     }
 
     /**
-     * thread responsible for handling leCallback packages
+     * thread responsible for handling scanCallback packages
      */
     private class HandleScanCallbacks extends Thread {
         final String TAG = "Controller.Callbacks";
@@ -1121,7 +1168,8 @@ public class ControllerService extends Service {
 
         //stop scanning
         if (isScanning) {
-            btAdapter.stopLeScan(leCallback);
+            //btAdapter.stopLeScan(leCallback);
+            leScanner.stopScan(scanCallback);
             isScanning = false;
         }
 

@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.RemoteViews;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -90,21 +91,27 @@ public class NotificationViewService extends Service {
                         // builder object
                         Notification.Builder notif = new Notification.Builder(NotificationViewService.this);
 
-                        notif.setLargeIcon(BitmapFactory.decodeResource(getResources(), bot.getImage()));
+                        // get our custom notification layout
+                        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_push_notification);
 
                         // setting icon of notification
                         notif.setSmallIcon(R.mipmap.ic_launcher);
 
+                        notif.setContent(remoteViews);
+
+                        //notif.setLargeIcon(BitmapFactory.decodeResource(getResources(), bot.getImage()));
+
+
                         // setting title of notification
-                        notif.setContentTitle(bot.getName());
+                        //notif.setContentTitle(bot.getName());
 
                         // setting textual content of notification - when notif isnt expanded
-                        notif.setContentText("Autonomous system is nearby.");
+                        //notif.setContentText("Autonomous system is nearby.");
 
                         // Big style notification text
-                        notif.setStyle((new Notification.BigTextStyle()).bigText(
-                                "Autonomous system is nearby.\nTap for more information"
-                        ));
+                        //notif.setStyle((new Notification.BigTextStyle()).bigText(
+                                //"Autonomous system is nearby.\nTap for more information"
+                        //));
 
                         //notif.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(
                           //      BitmapFactory.decodeResource(getResources(), R.drawable.dangerous)
@@ -112,12 +119,14 @@ public class NotificationViewService extends Service {
 
 
                         // setting clickable action of notification
+                        /*
                         Intent intent = new Intent(NotificationViewService.this, RobotLink.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.putExtra("EXTRA_ROBOT_ID", bot.getId());
                         notif.setContentIntent(PendingIntent.getActivity(NotificationViewService.this,
                                 id, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT));
+                                */
 
                         // Adding dismiss button
                         /*
