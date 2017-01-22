@@ -11,6 +11,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class RobotSelector extends AppCompatActivity {
     private ArrayList<Robot> model; // view's copy of the model
@@ -100,15 +101,31 @@ public class RobotSelector extends AppCompatActivity {
                     model = ControllerService.getModel();
                     Log.i("RobotSelector.Update", "Model changed");
 
+                    // checking how many robots needs to be displayed (not ignored)
+                    int robotListSize = 0;
+                    for (Robot bot : model) {
+                        if (bot.isVisibile()) {
+                            robotListSize++;
+                        }
+                    }
+
                     //updating robot list ui
-                    Integer images[]  = new Integer[model.size()];
-                    Robot robots[] = new Robot[model.size()];
+                    Integer images[]  = new Integer[robotListSize];
+                    Robot robots[] = new Robot[robotListSize];
                     int i = 0;
                     for (Robot bot : model) {
+                        if (!bot.isVisibile()) {
+                            continue;
+                        }
                         robots[i] = bot;
                         images[i] = bot.getImage();
                         i++;
+                        Log.i("RobotSelector.Update", "ID: " + bot.getId());
+                        Log.i("RobotSelector.Update", "Name: " + bot.getName());
+                        Log.i("RobotSelector.Update", "ImgID: " + bot.getImage());
                     }
+                    Log.i("RobotSelector.Update", "Res ImgIDs: " + Arrays.toString(images));
+                    Log.i("RobotSelector.Update", "Robot Names: " + Arrays.toString(robots));
                     displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images);
 
                     robotSelectorHandler.post(new Runnable() {

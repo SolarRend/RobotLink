@@ -294,6 +294,11 @@ public class RobotLink extends AppCompatActivity {
                     for (Robot bot: model) {
                         if (robot.getId().equals(bot.getId())) {
                             robot = bot;
+                            // if this robot is now ignored exit activity
+                            if (!robot.isVisibile()) {
+                                RobotLink.this.finish();
+                                return;
+                            }
                             robotLinkHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -351,6 +356,21 @@ public class RobotLink extends AppCompatActivity {
                 final JSONObject progressionElement = progression.getJSONObject(i);
 
                 //display the content
+                TextView contentView = new TextView(RobotLink.this);
+                contentView.setText(progressionElement.getString("content")); // textual content
+                contentView.setTextSize(20); // size of text
+                contentView.setTextColor(Color.BLACK); // color of text
+                contentView.setId(View.generateViewId()); // generating random id for view
+
+                //parameters for content view
+                LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                textParams.setMargins(20, 50, 0, 10); // margin for content to not be so close to edge
+                contentView.setLayoutParams(textParams); // setting parameters for the content view
+
+                scrollLayout.addView(contentView);
 
                 // get responses which will be turned into buttons
                 JSONArray responses = progressionElement.getJSONArray("responses");

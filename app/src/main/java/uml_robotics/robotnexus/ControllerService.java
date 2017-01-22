@@ -116,6 +116,9 @@ public class ControllerService extends Service {
     // queue for replies waiting to be sent back to robot
     private static ArrayList<ReplyPackage> replyQueue = null;
     private static ReentrantLock replyQueueLock = null; // lock for accessing reply queue
+    // boolean that holds the visible value in the advertisement -> is global because no way to pass
+    // to connect and discover callbacks
+    private boolean isCurrRobotVisible = true;
     /*
      * characteristics/values of our currently connected robot
      */
@@ -648,15 +651,35 @@ public class ControllerService extends Service {
                                             return;
                                         }
 
+                                        // get robot's image
+                                        String makeOfRobot = jsonMessage.getString("model");
+                                        int imgOfBot = -1;
+                                        if (makeOfRobot.equals("neato")) {
+                                            imgOfBot = R.drawable.svg_neato;
+                                        } else if (makeOfRobot.equals("roomba")) {
+                                            imgOfBot = R.drawable.svg_discovery;
+                                        } else if (makeOfRobot.equals("bender")) {
+                                            imgOfBot = R.drawable.svg_bender;
+                                        } else if (makeOfRobot.equals("dirtdog")) {
+                                            imgOfBot = R.drawable.svg_dirt_dog;
+                                        } else if (makeOfRobot.equals("roomba500")) {
+                                            imgOfBot = R.drawable.svg_roomba500;
+                                        } else {
+                                            // it's just gotta be junior
+                                            imgOfBot = R.drawable.junior;
+                                        }
+
                                         modelLock.lock();
                                         for (Robot bot : model) {
                                             if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
-                                                // get this robot's name
+                                                // set this robot's name
                                                 bot.setName(jsonMessage.getString("name"));
-                                                // get it's state
+                                                // set it's state
                                                 bot.setCurrState(jsonMessage.getString("state"));
-                                                // get it's make
-                                                bot.setModel(jsonMessage.getString("model"));
+                                                // set it's model
+                                                bot.setModel(makeOfRobot);
+                                                // set image of robot
+                                                bot.setImage(imgOfBot);
                                                 // give robot the progression
                                                 bot.setProgression(jsonMessage.getJSONArray("progression"));
                                                 break;
@@ -936,12 +959,14 @@ public class ControllerService extends Service {
                     if (!robotsAsBTDevices.containsKey(device)) {
 
                         List<String> listOfStructures = parseScanRecord(scanRecord);
-                        //for (String s : listOfStructures) {
-                        //Log.i("leCallBack", s);
-                        //}
+                        Log.i(TAG, device.getAddress());
+                        for (String s : listOfStructures) {
+                            Log.i(TAG, s);
+                        }
 
                         if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
                             //DeviceUtilities item = new DeviceUtilities(device, rssi);
+                            isCurrRobotVisible = isRobotVisible(listOfStructures);
                             robotsAsBTDevices.put(device, rssi);
                             robotUpdateClock.stopTimer();
                             //initial connection
@@ -1099,6 +1124,30 @@ public class ControllerService extends Service {
 
         uuidTemp = UUID.fromString(strOfUuidElements);
         return uuidTemp;
+    }
+
+    /**
+     * takes a look at the 0xFF structure which will tell if the robot
+     * should be displayed or not
+     * 0 = visible
+     * 1 = not visible
+     * @param listOfStructures is an arraylist contating all gap structures
+     * @returns true if robot should be displayed to user
+     */
+    private boolean isRobotVisible(List<String> listOfStructures) {
+
+        for (String s : listOfStructures) {
+            //Log.i("shouldIgnoreRobot()", "Checking = " + s.substring(0, 8));
+            if ((s.substring(0, 8)).equals("11111111")) {
+
+                if ((s.charAt(s.length() - 2)) == '0') {
+                    return true;
+                }
+                return false;
+                //Log.i("shouldIgnoreRobot()", "Bit is: " + (s.charAt(s.length() - 2));
+            }
+        }
+        return true;
     }
 
     /**
@@ -1574,6 +1623,7 @@ public class ControllerService extends Service {
             for (Robot bot : model) {
                 if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
                     bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
+                    bot.setVisibile(isCurrRobotVisible);
                     model.set(model.indexOf(bot), (Robot)bot.clone());
                     alreadyContained = true;
                     break;
@@ -1586,11 +1636,13 @@ public class ControllerService extends Service {
                 // setting robot name, rssi (proximity) and ID
                 Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
                         currConnectedDevice.getDevice().getAddress());
-                robot.setImage(R.drawable.junior); //TEMPORARY
+                robot.setVisibile(isCurrRobotVisible);
+                //robot.setImage(R.drawable.svg_neato); //TEMPORARY
                 modelLock.lock();
                 model.add(robot);
                 modelLock.unlock();
             }
+
         } catch (NullPointerException ex) {
             StringWriter stringWriter = new StringWriter();
             PrintWriter printWriter = new PrintWriter(stringWriter, true);
