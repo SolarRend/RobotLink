@@ -13,7 +13,7 @@ public class Robot {
     private enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
     private String name; // name of robot
     private Integer image; // image id of what robot looks like
-    private boolean visibile = true; // for dismissed robots
+    private boolean visible = true; // for dismissed robots
     private int proximity; // how close is this robot
     private String id; // hidden identifier for a bot
     private String model; // the make of a robot
@@ -27,12 +27,12 @@ public class Robot {
         this.currState = State.NOT_SET;
     }
 
-    public void setVisibile(boolean visibile) {
-        this.visibile = visibile;
+    public void setVisible(boolean visible) {
+        this.visible = visible;
     }
 
-    public boolean isVisibile() {
-        return visibile;
+    public boolean isVisible() {
+        return visible;
     }
 
     public void setProgression(JSONArray progression) {
@@ -115,7 +115,7 @@ public class Robot {
         robot.setModel(this.getModel());
         robot.setImage(this.getImage());
         robot.setProgression(this.getProgression());
-        robot.setVisibile(this.isVisibile());
+        robot.setVisible(this.isVisible());
         return robot;
     }
 

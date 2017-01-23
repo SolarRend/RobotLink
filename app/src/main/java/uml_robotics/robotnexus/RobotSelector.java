@@ -104,7 +104,7 @@ public class RobotSelector extends AppCompatActivity {
                     // checking how many robots needs to be displayed (not ignored)
                     int robotListSize = 0;
                     for (Robot bot : model) {
-                        if (bot.isVisibile()) {
+                        if (bot.isVisible()) {
                             robotListSize++;
                         }
                     }
@@ -114,7 +114,7 @@ public class RobotSelector extends AppCompatActivity {
                     Robot robots[] = new Robot[robotListSize];
                     int i = 0;
                     for (Robot bot : model) {
-                        if (!bot.isVisibile()) {
+                        if (!bot.isVisible()) {
                             continue;
                         }
                         robots[i] = bot;

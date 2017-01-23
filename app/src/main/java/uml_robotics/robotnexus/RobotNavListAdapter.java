@@ -34,7 +34,10 @@ public class RobotNavListAdapter extends ArrayAdapter<Robot> {
         ImageView ListViewImage = (ImageView) ListViewSingle.findViewById(R.id.robot_list_image);
 
         ListViewItems.setText(robots[position].toString());
-        ListViewImage.setImageResource(images[position]);
+        //safety-net for when our first update is an "ack"
+        if (images[position] != null) {
+            ListViewImage.setImageResource(images[position]);
+        }
         return ListViewSingle;
     }
 }

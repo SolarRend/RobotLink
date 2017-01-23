@@ -283,6 +283,12 @@ public class RobotLink extends AppCompatActivity {
                     }
                 }
 
+                // if this robot is now ignored exit activity
+                if (!robotPrime.isVisible()) {
+                    RobotLink.this.finish();
+                    return;
+                }
+
                 // if the robots' progressions or status' don't match up
                 if ((!(robotPrime.getCurrState().equals(robot.getCurrState())))
                         || (!(robotPrime.getProgression().toString().equals(robot.getProgression().toString())))) {
@@ -294,11 +300,6 @@ public class RobotLink extends AppCompatActivity {
                     for (Robot bot: model) {
                         if (robot.getId().equals(bot.getId())) {
                             robot = bot;
-                            // if this robot is now ignored exit activity
-                            if (!robot.isVisibile()) {
-                                RobotLink.this.finish();
-                                return;
-                            }
                             robotLinkHandler.post(new Runnable() {
                                 @Override
                                 public void run() {

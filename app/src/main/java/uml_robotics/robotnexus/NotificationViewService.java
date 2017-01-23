@@ -94,6 +94,31 @@ public class NotificationViewService extends Service {
                         // get our custom notification layout
                         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_push_notification);
 
+                        // set the img of the robot
+                        String makeOfRobot = bot.getModel();
+                        if (makeOfRobot == null) {
+                            // safety-net for ack
+                            remoteViews.setImageViewResource(R.id.push_notif_img, R.mipmap.ic_launcher);
+                        } else {
+                            if (makeOfRobot.equals("neato")) {
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.svg_neato);
+                            } else if (makeOfRobot.equals("roomba")) {
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.svg_discovery);
+                            } else if (makeOfRobot.equals("bender")) {
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.svg_bender);
+                            } else if (makeOfRobot.equals("dirtdog")) {
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.svg_dirt_dog);
+                            } else if (makeOfRobot.equals("roomba500")) {
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.svg_roomba500);
+                            } else {
+                                // it's just gotta be junior
+                                remoteViews.setImageViewResource(R.id.push_notif_img, R.drawable.junior);
+                            }
+                        }
+
+                        //setting robot's name
+                        remoteViews.setTextViewText(R.id.push_notif_bot_name, bot.getName());
+
                         // setting icon of notification
                         notif.setSmallIcon(R.mipmap.ic_launcher);
 
@@ -119,14 +144,14 @@ public class NotificationViewService extends Service {
 
 
                         // setting clickable action of notification
-                        /*
+
                         Intent intent = new Intent(NotificationViewService.this, RobotLink.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.putExtra("EXTRA_ROBOT_ID", bot.getId());
                         notif.setContentIntent(PendingIntent.getActivity(NotificationViewService.this,
                                 id, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT));
-                                */
+
 
                         // Adding dismiss button
                         /*

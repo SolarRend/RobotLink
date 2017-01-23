@@ -680,9 +680,10 @@ public class ControllerService extends Service {
                                                 bot.setModel(makeOfRobot);
                                                 // set image of robot
                                                 bot.setImage(imgOfBot);
-                                                // give robot the progression
-                                                bot.setProgression(jsonMessage.getJSONArray("progression"));
-                                                break;
+                                                // get the robot progression if it exists
+                                                if (!(jsonMessage.isNull("progression"))) {
+                                                    bot.setProgression(jsonMessage.getJSONArray("progression"));
+                                                }
                                             }
                                         }
 
@@ -1623,7 +1624,7 @@ public class ControllerService extends Service {
             for (Robot bot : model) {
                 if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
                     bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
-                    bot.setVisibile(isCurrRobotVisible);
+                    bot.setVisible(isCurrRobotVisible);
                     model.set(model.indexOf(bot), (Robot)bot.clone());
                     alreadyContained = true;
                     break;
@@ -1636,7 +1637,7 @@ public class ControllerService extends Service {
                 // setting robot name, rssi (proximity) and ID
                 Robot robot = new Robot(robotsAsBTDevices.get(currConnectedDevice.getDevice()),
                         currConnectedDevice.getDevice().getAddress());
-                robot.setVisibile(isCurrRobotVisible);
+                robot.setVisible(isCurrRobotVisible);
                 //robot.setImage(R.drawable.svg_neato); //TEMPORARY
                 modelLock.lock();
                 model.add(robot);
