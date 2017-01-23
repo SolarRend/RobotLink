@@ -425,7 +425,7 @@ public class ControllerService extends Service {
                                             isScanning = true;
                                             robotUpdateClock.startTimer();
                                         }
-                                    } catch (NullPointerException ex) {
+                                    } catch (Exception ex) {
                                         StringWriter stringWriter = new StringWriter();
                                         PrintWriter printWriter = new PrintWriter(stringWriter, true);
                                         ex.printStackTrace(printWriter);
@@ -815,12 +815,12 @@ public class ControllerService extends Service {
         handleScanCallbacks.close();
 
         // cleaning up
-        btAdapter = null;
-        uuidOfInterest = null;
-        scanCallback = null;
-        btGattCallback = null;
-        supportedServices = null;
-        supportedCharas = null;
+        //btAdapter = null;
+        //uuidOfInterest = null;
+        //scanCallback = null;
+        //btGattCallback = null;
+        //supportedServices = null;
+        //supportedCharas = null;
         Log.i("Controller.onDestroy()", "Destroyed");
     }
 
@@ -1219,8 +1219,13 @@ public class ControllerService extends Service {
         //stop scanning
         if (isScanning) {
             //btAdapter.stopLeScan(leCallback);
-            leScanner.stopScan(scanCallback);
-            isScanning = false;
+            try {
+                leScanner.stopScan(scanCallback);
+            } catch (Exception ex) {
+                onStartCommandSeparateThread();
+            } finally {
+                isScanning = false;
+            }
         }
 
         // if we're already connected get out

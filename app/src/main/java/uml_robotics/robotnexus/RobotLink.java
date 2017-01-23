@@ -343,9 +343,9 @@ public class RobotLink extends AppCompatActivity {
     }
 
     private void displayProgression(JSONArray progression) {
-        if (progression == null) {
-            return;
-        }
+        //if (progression == null) {
+        //    return;
+        //}
 
         /**
          * loop through all objects in progression

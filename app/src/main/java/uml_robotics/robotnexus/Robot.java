@@ -102,6 +102,9 @@ public class Robot {
         if (!(robotSelf.getCurrState().equals(robotPrime.getCurrState()))) {
             return false;
         }
+        if (!(robotSelf.getProgression().equals(robotPrime.getProgression()))) {
+            return false;
+        }
 
         return true;
     }
