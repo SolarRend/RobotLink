@@ -355,6 +355,7 @@ public class ControllerService extends Service {
                                                 }
                                                 btAdapter.enable();
                                                 onStartCommandSeparateThread();
+                                                robotUpdateClock.startTimer();
                                             }
                                             return;
                                         }
@@ -631,14 +632,14 @@ public class ControllerService extends Service {
                                         strJSON = null;
 
                                         // sort closest to furthest
-                                        modelLock.lock();
-                                        Collections.sort(model, new Comparator<Robot>() {
-                                            @Override
-                                            public int compare(Robot lhs, Robot rhs) {
-                                                return rhs.getProximity() - lhs.getProximity();
-                                            }
-                                        });
-                                        modelLock.unlock();
+                                        //modelLock.lock();
+                                        //Collections.sort(model, new Comparator<Robot>() {
+                                        //    @Override
+                                        //    public int compare(Robot lhs, Robot rhs) {
+                                        //        return rhs.getProximity() - lhs.getProximity();
+                                        //    }
+                                        //});
+                                        //modelLock.unlock();
 
                                         if (jsonMessage.getString("msgtype").equals("ack")) {
                                             // no update
@@ -950,6 +951,8 @@ public class ControllerService extends Service {
                             // so connect right away
                             robotsAsBTDevices.put(device, rssi);
                             robotUpdateClock.stopTimer();
+                            // needs to be here in case a robot right before took a false
+                            isCurrRobotVisible = true;
                             connect(device);
                         }
                     }
@@ -1222,7 +1225,12 @@ public class ControllerService extends Service {
             try {
                 leScanner.stopScan(scanCallback);
             } catch (Exception ex) {
-                onStartCommandSeparateThread();
+                serviceHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onStartCommandSeparateThread();
+                    }
+                });
             } finally {
                 isScanning = false;
             }

@@ -12,7 +12,7 @@ import org.json.JSONArray;
 public class Robot {
     private enum State {ok, safe, help, dangerous, off, NOT_SET} // a robot is in one of these states at all times
     private String name; // name of robot
-    private Integer image; // image id of what robot looks like
+    private Integer image = null; // image id of what robot looks like
     private boolean visible = true; // for dismissed robots
     private int proximity; // how close is this robot
     private String id; // hidden identifier for a bot

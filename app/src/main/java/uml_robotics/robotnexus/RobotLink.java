@@ -286,6 +286,7 @@ public class RobotLink extends AppCompatActivity {
                 // if this robot is now ignored exit activity
                 if (!robotPrime.isVisible()) {
                     RobotLink.this.finish();
+                    Log.i("RobotLink.Update", "Finishing, " + robotPrime.getId());
                     return;
                 }
 

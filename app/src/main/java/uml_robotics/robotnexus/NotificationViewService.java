@@ -101,13 +101,19 @@ public class NotificationViewService extends Service {
                     Log.i("NotifView.Update", "Model changed");
 
                     //reverse this copy of the model to ensure closest robot is the top notif
-                    Collections.reverse(model);
+                    //Collections.reverse(model);
 
                     // ***displaying push notifications***
 
                     int id = 0; // for content intent and notification
                     ArrayList<Notification> closestThree = new ArrayList<>(3);
                     for (Robot bot : model) {
+
+                        // if this robot is leaving cancel his notification
+                        if (!bot.isVisible()) {
+                            notifManager.cancel(id);
+                            continue;
+                        }
                         // building notification
                         // builder object
                         Notification.Builder notif = new Notification.Builder(NotificationViewService.this);
@@ -127,7 +133,11 @@ public class NotificationViewService extends Service {
                         remoteViews.setTextViewText(R.id.push_notif_bot_name, bot.getName());
 
                         // setting icon of notification
-                        notif.setSmallIcon(bot.getImage());
+                        if (bot.getImage() == null) {
+                            notif.setSmallIcon(R.mipmap.ic_launcher);
+                        } else {
+                            notif.setSmallIcon(bot.getImage());
+                        }
 
                         notif.setContent(remoteViews);
 
@@ -202,7 +212,7 @@ public class NotificationViewService extends Service {
                                         @Override
                                         public void run() {
                                             if (dialog == null || !dialog.isShowing()) {
-                                                //displayDialog(bot, lastProgressionElement);
+                                                displayDialog(bot, lastProgressionElement);
                                             }
                                         }
                                     });
@@ -233,92 +243,252 @@ public class NotificationViewService extends Service {
     }
 
     public void displayDialog(final Robot bot, final JSONObject progressionElement) {
+
         // creating dialog
         dialog = new Dialog(NotificationViewService.this);
         // allowing to write over an screen
         dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
         // setting title of dialog
-        dialog.setTitle(bot.getName() + " alert message.");
-
-        // setting layout for dialog
-        LinearLayout dialogLayout = new LinearLayout(this);
-        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialog.setTitle(bot.getName() + " Alert Message!");
+        dialog.setCanceledOnTouchOutside(false); //USE THIS
 
         try {
-            // getting content of progression element
-            TextView content = new TextView(this);
-            content.setText(progressionElement.getString("content"));
-            content.setTextSize(18);
-            content.setTextColor(Color.WHITE);
-            // layout rules for content view
-            LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            contentParams.setMargins(20, 40, 0, 30);
-            content.setLayoutParams(contentParams);
-            dialogLayout.addView(content);
+            // get responses (buttons
+            final JSONArray responses = progressionElement.getJSONArray("responses");
 
-            /**
-             * loop through all responses and make buttons for them
-             */
-            LinearLayout buttonLayout = new LinearLayout(this); // layout that holds buttons
-            buttonLayout.setOrientation(LinearLayout.VERTICAL);
-            // parameters for button container
-            LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            buttonLayoutParams.setMargins(20, 30, 0, 20);
-            buttonLayout.setLayoutParams(buttonLayoutParams);
-            JSONArray responses = progressionElement.getJSONArray("responses");
-            for (int i = 0; i < responses.length(); i++) {
-                // get this element in the response
-                final JSONObject responseElement = responses.getJSONObject(i);
+            // figure out which layout to use
+            switch (responses.length()) {
 
-                //parameters for button view
-                LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-                buttonParams.setMargins(0, 10, 0, 10);
-                Button responseButton = new Button(this);
-                responseButton.setTransformationMethod(null); // remove all caps
-                responseButton.setText(responseElement.getString("value")); // value of response
-                responseButton.setTextSize(20);
-                responseButton.setTextColor(Color.BLACK);
-                responseButton.setBackgroundColor(Color.WHITE);
-                responseButton.setLayoutParams(buttonParams);
-                responseButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        try {
-                            ControllerService.addToReplyQueue(bot.getId(),
-                                    progressionElement.getString("msgid"), responseElement.getString("id"));
+                // 2 buttons
+                case 2:
+                    dialog.setContentView(R.layout.alert_two);
+                    Button button1 = ((Button)dialog.findViewById(R.id.alert_two_button1));
+                    Button button2 = ((Button)dialog.findViewById(R.id.alert_two_button2));
 
-                            //end this dialog
-                            dialog.cancel();
-                        } catch (JSONException ex) {
-                            StringWriter stringWriter = new StringWriter();
-                            PrintWriter printWriter = new PrintWriter(stringWriter, true);
-                            ex.printStackTrace(printWriter);
-                            Log.e("RobotLink.Progression", stringWriter.toString());
+                    button1.setText(responses.getJSONObject(0).getString("value"));
+                    button2.setText(responses.getJSONObject(1).getString("value"));
+
+                    // clickable actions for buttons -> add to controller reply queue
+                    button1.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
                         }
-                    }
-                });
-                buttonLayout.addView(responseButton);
+                    });
+
+                    button2.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(1).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+
+                    break;
+                // 3 buttons
+                case 3:
+
+                    dialog.setContentView(R.layout.alert_three);
+                    Button button3 = ((Button)dialog.findViewById(R.id.alert_three_button1));
+                    Button button4 = ((Button)dialog.findViewById(R.id.alert_three_button2));
+                    Button button5 = ((Button)dialog.findViewById(R.id.alert_three_button3));
+
+                    button3.setText(responses.getJSONObject(0).getString("value"));
+                    button4.setText(responses.getJSONObject(1).getString("value"));
+                    button5.setText(responses.getJSONObject(2).getString("value"));
+
+                    // clickable actions for buttons -> add to controller reply queue
+                    button3.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+                        }
+                    });
+
+                    button4.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(1).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+
+                    button5.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(2).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+
+                    break;
+                // 4 buttons
+                case 4:
+
+                    dialog.setContentView(R.layout.alert_four);
+                    Button button6 = ((Button)dialog.findViewById(R.id.alert_four_button1));
+                    Button button7 = ((Button)dialog.findViewById(R.id.alert_four_button2));
+                    Button button8 = ((Button)dialog.findViewById(R.id.alert_four_button3));
+                    Button button9 = ((Button)dialog.findViewById(R.id.alert_four_button4));
+
+                    button6.setText(responses.getJSONObject(0).getString("value"));
+                    button7.setText(responses.getJSONObject(1).getString("value"));
+                    button8.setText(responses.getJSONObject(2).getString("value"));
+                    button9.setText(responses.getJSONObject(3).getString("value"));
+
+                    // clickable actions for buttons -> add to controller reply queue
+                    button6.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+                        }
+                    });
+
+                    button7.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(1).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+
+                    button8.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(2).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+
+                    button9.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            try {
+                                ControllerService.addToReplyQueue(bot.getId(),
+                                        progressionElement.getString("msgid"), responses.getJSONObject(3).getString("id"));
+
+                                //end this dialog
+                                dialog.dismiss();
+                            } catch (JSONException ex) {
+                                StringWriter stringWriter = new StringWriter();
+                                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                ex.printStackTrace(printWriter);
+                                Log.e("NotifView.Dialog", stringWriter.toString());
+                            }
+
+                        }
+                    });
+                    break;
             }
-            // adding buttons to dialog
-            dialogLayout.addView(buttonLayout);
 
-            // add content to dialog
-            dialog.setContentView(dialogLayout);
+            // set content of progression
+            ((TextView)dialog.findViewById(R.id.alert_two_content)).setText(progressionElement.getString("content"));
 
-            // set overall dialog size
-            Window window = dialog.getWindow();
-            window.setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT);
+            // setting clickable action for later and more info
+            ((Button)dialog.findViewById(R.id.alert_two_info)).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                            RobotLink.class)
+                            .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    dialog.dismiss();
+                }
+            });
 
-            //display dialog
-            dialog.show();
+            ((Button)dialog.findViewById(R.id.alert_two_later)).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //get rid of dialog box and don't show again for this robot
+                    dialog.dismiss();
+                }
+            });
 
         } catch (JSONException ex) {
             StringWriter stringWriter = new StringWriter();
@@ -326,6 +496,122 @@ public class NotificationViewService extends Service {
             ex.printStackTrace(printWriter);
             Log.e("NotifView.Dialog", stringWriter.toString());
         }
+
+
+        // set status of robot
+        String status = bot.getCurrState();
+        if (status.equals("ok")) {
+            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_ok);
+        } else if (status.equals("safe")) {
+            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_safe);
+        } else if (status.equals("dangerous")) {
+            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_dangerous);
+        } else if (status.equals("help")) {
+            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_help);
+        } else if (status.equals("off")) {
+            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_off);
+        }
+
+
+        // put bot's image in dialog title
+        if (bot.getImage() == null) {
+            dialog.setFeatureDrawableResource(Window.FEATURE_LEFT_ICON, R.mipmap.ic_launcher);
+        } else {
+            dialog.setFeatureDrawableResource(Window.FEATURE_LEFT_ICON, bot.getImage());
+        }
+
+        //display the dialog
+        dialog.show();
+
+
+
+//        // setting layout for dialog
+//        LinearLayout dialogLayout = new LinearLayout(this);
+//        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+//
+//        try {
+//            // getting content of progression element
+//            TextView content = new TextView(this);
+//            content.setText(progressionElement.getString("content"));
+//            content.setTextSize(18);
+//            content.setTextColor(Color.WHITE);
+//            // layout rules for content view
+//            LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
+//                    LinearLayout.LayoutParams.WRAP_CONTENT,
+//                    LinearLayout.LayoutParams.WRAP_CONTENT
+//            );
+//            contentParams.setMargins(20, 40, 0, 30);
+//            content.setLayoutParams(contentParams);
+//            dialogLayout.addView(content);
+//
+//            /**
+//             * loop through all responses and make buttons for them
+//             */
+//            LinearLayout buttonLayout = new LinearLayout(this); // layout that holds buttons
+//            buttonLayout.setOrientation(LinearLayout.VERTICAL);
+//            // parameters for button container
+//            LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
+//                    LinearLayout.LayoutParams.WRAP_CONTENT,
+//                    LinearLayout.LayoutParams.WRAP_CONTENT
+//            );
+//            buttonLayoutParams.setMargins(20, 30, 0, 20);
+//            buttonLayout.setLayoutParams(buttonLayoutParams);
+//            JSONArray responses = progressionElement.getJSONArray("responses");
+//            for (int i = 0; i < responses.length(); i++) {
+//                // get this element in the response
+//                final JSONObject responseElement = responses.getJSONObject(i);
+//
+//                //parameters for button view
+//                LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+//                        LinearLayout.LayoutParams.WRAP_CONTENT,
+//                        LinearLayout.LayoutParams.WRAP_CONTENT);
+//                buttonParams.setMargins(0, 10, 0, 10);
+//                Button responseButton = new Button(this);
+//                responseButton.setTransformationMethod(null); // remove all caps
+//                responseButton.setText(responseElement.getString("value")); // value of response
+//                responseButton.setTextSize(20);
+//                responseButton.setTextColor(Color.BLACK);
+//                responseButton.setBackgroundColor(Color.WHITE);
+//                responseButton.setLayoutParams(buttonParams);
+//                responseButton.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        try {
+//                            ControllerService.addToReplyQueue(bot.getId(),
+//                                    progressionElement.getString("msgid"), responseElement.getString("id"));
+//
+//                            //end this dialog
+//                            dialog.cancel();
+//                        } catch (JSONException ex) {
+//                            StringWriter stringWriter = new StringWriter();
+//                            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+//                            ex.printStackTrace(printWriter);
+//                            Log.e("RobotLink.Progression", stringWriter.toString());
+//                        }
+//                    }
+//                });
+//                buttonLayout.addView(responseButton);
+//            }
+//            // adding buttons to dialog
+//            dialogLayout.addView(buttonLayout);
+//
+//            // add content to dialog
+//            dialog.setContentView(dialogLayout);
+//
+//            // set overall dialog size
+//            Window window = dialog.getWindow();
+//            window.setLayout(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT);
+//
+//            //display dialog
+//            dialog.show();
+//
+//        } catch (JSONException ex) {
+//            StringWriter stringWriter = new StringWriter();
+//            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+//            ex.printStackTrace(printWriter);
+//            Log.e("NotifView.Dialog", stringWriter.toString());
+//        }
+
     }
 }
 
