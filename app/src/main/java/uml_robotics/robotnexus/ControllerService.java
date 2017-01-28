@@ -51,6 +51,7 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.CRC32;
 
 import static java.lang.Thread.sleep;
 
@@ -119,6 +120,7 @@ public class ControllerService extends Service {
     // boolean that holds the visible value in the advertisement -> is global because no way to pass
     // to connect and discover callbacks
     private boolean isCurrRobotVisible = true;
+
     /*
      * characteristics/values of our currently connected robot
      */
@@ -406,7 +408,7 @@ public class ControllerService extends Service {
                                         if (btAdapter != null) {
                                             leScanner.startScan(null,
                                                     new ScanSettings.Builder()
-                                                            .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                                                            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                                                             //.setReportDelay(0)
                                                             //.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                                                             //.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
@@ -496,6 +498,12 @@ public class ControllerService extends Service {
                                     //java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt() + "");
                             //Log.i("onCharacteristicRead", supportedCharas.get(characteristic.getUuid().toString()));
                             totalNumOfPackets = java.nio.ByteBuffer.wrap(characteristic.getValue()).getInt();
+
+                            //if this happens then get out!
+                            if (totalNumOfPackets < 1) {
+                                currConnectedDevice.disconnect();
+                            }
+
                             // initialize map with correct number of packets wanted
                             if (totalNumOfPackets >= 128) {
                                 for (int i = 0; i < 128; i++) {
@@ -536,7 +544,7 @@ public class ControllerService extends Service {
                     @Override
                     public void onCharacteristicChanged(BluetoothGatt gatt,
                                                         final BluetoothGattCharacteristic characteristic) {
-                        Log.i("onCharaChange", "Successfully notified");
+                        Log.i("onCharaChange", "Successfully notified: " + characteristic.getUuid().toString());
 
 
                             // for reasons unknown we cannot post onto service thread
@@ -561,6 +569,16 @@ public class ControllerService extends Service {
                                 // this characteristic is saying if they missed a packet or not
                                 Log.i("onCharaChange", "Indicate: "
                                         + Arrays.toString(characteristic.getValue()));
+                                try {
+                                    makeRobotBlock.add(1); // patch fix
+                                } catch (Exception ex){
+                                    StringWriter stringWriter = new StringWriter();
+                                    PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                    ex.printStackTrace(printWriter);
+                                    Log.e("onCharaChange", stringWriter.toString());
+                                    currConnectedDevice.disconnect();
+                                    makeRobotBlock.clear();
+                                }
                             }
 
                     }
@@ -572,7 +590,7 @@ public class ControllerService extends Service {
                                                       int status) {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             Log.i("OnCharaWrite", "Successfully written");
-                            characteristicWriteBlock.add(1);
+                            characteristicWriteBlock.offer(1);
                         }
                     }
                 };
@@ -629,7 +647,13 @@ public class ControllerService extends Service {
                                     // convert our string into JSON
                                     try {
                                         JSONObject jsonMessage = new JSONObject(strJSON);
+                                        // get hash value from json string
+                                        CRC32 crc32 = new CRC32();
+                                        crc32.update(strJSON.getBytes());
+                                        long statusHashValue = crc32.getValue();
                                         strJSON = null;
+
+                                        Log.i("Controller.Update", jsonMessage.toString(2));
 
                                         // sort closest to furthest
                                         //modelLock.lock();
@@ -685,6 +709,8 @@ public class ControllerService extends Service {
                                                 if (!(jsonMessage.isNull("progression"))) {
                                                     bot.setProgression(jsonMessage.getJSONArray("progression"));
                                                 }
+                                                // set checksum value
+                                                bot.setStatusHashValue(statusHashValue);
                                             }
                                         }
 
@@ -749,7 +775,7 @@ public class ControllerService extends Service {
         //start scanning
         leScanner.startScan(null,
                 new ScanSettings.Builder()
-                        .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                         //.setReportDelay(0)
                         //.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                         //.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
@@ -902,6 +928,8 @@ public class ControllerService extends Service {
                     ScanCallbackPackage callbackPackage = scanCallbackPackages.remove(0);
                     scanCallbackPackagesLock.unlock();
 
+                    //Log.i(TAG, "Queue size: " + scanCallbackPackages.size());
+
                     BluetoothDevice device = callbackPackage.getDevice();
                     int rssi = callbackPackage.getRssi();
                     byte scanRecord[] = callbackPackage.getScanRecord();
@@ -971,10 +999,31 @@ public class ControllerService extends Service {
                         if (uuidOfInterest.equals(getAdUuidOfPeripheral(listOfStructures))) {
                             //DeviceUtilities item = new DeviceUtilities(device, rssi);
                             isCurrRobotVisible = isRobotVisible(listOfStructures);
-                            robotsAsBTDevices.put(device, rssi);
-                            robotUpdateClock.stopTimer();
-                            //initial connection
-                            connect(device);
+
+                            // check if there is an update with this robot
+                            if (checkForUpdate(device.getAddress(), listOfStructures)) {
+                                robotsAsBTDevices.put(device, rssi);
+                                robotUpdateClock.stopTimer();
+                                //connect and get info
+                                connect(device);
+                            } else {
+                                //***need to set visibility because there is no update***
+                                modelLock.lock();
+                                model = getModel();
+                                // find robot in model
+                                for (Robot bot : model) {
+                                    if (bot.getId().equals(device.getAddress())) {
+                                        bot.setProximity(rssi);
+                                        bot.setVisible(isCurrRobotVisible);
+                                        model.set(model.indexOf(bot), (Robot)bot.clone());
+                                        // set the model now
+                                        setModel(model);
+                                        break;
+                                    }
+                                }
+                                modelLock.unlock();
+                            }
+
                         } else {
                             // Add to rejected list
                             rejectedDeviceList.add(device);
@@ -1143,8 +1192,8 @@ public class ControllerService extends Service {
         for (String s : listOfStructures) {
             //Log.i("shouldIgnoreRobot()", "Checking = " + s.substring(0, 8));
             if ((s.substring(0, 8)).equals("11111111")) {
-
-                if ((s.charAt(s.length() - 2)) == '0') {
+                //Log.i("isRobotVisible()", "Length: " + ((s.substring(9)).length()));
+                if ((s.charAt(34)) == '0') {
                     return true;
                 }
                 return false;
@@ -1152,6 +1201,41 @@ public class ControllerService extends Service {
             }
         }
         return true;
+    }
+
+    private boolean checkForUpdate(String addressOfRobot, List<String> listOfStructures) {
+        // check if we already have a robot with this address
+        modelLock.lock();
+        Robot robot = null;
+        model = getModel();
+        for (Robot bot : model) {
+            if (bot.getId().equals(addressOfRobot)) {
+                robot = bot;
+                break;
+            }
+        }
+        modelLock.unlock();
+        // no robot has been found in current model -> need to connect
+        if (robot == null) {
+            return true;
+        }
+
+        // get checksum value from server
+        for (String s : listOfStructures) {
+
+            if ((s.substring(0, 8)).equals("11111111")) {
+
+                // compare against what the last checksum was for this robot
+                if (robot.getStatusHashValue() != Long.parseLong(s.substring(36).replaceAll("\\s",""), 2)) {
+                    return true;
+                }
+                break;
+                //Log.i("Controller.checkUpdate", Long.toHexString(Long.parseLong(s.substring(36).replaceAll("\\s",""), 2)) + "");
+                //Log.i("Controller.checkUpdate", s.substring(36).replaceAll("\\s","").length() + "");
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1355,7 +1439,7 @@ public class ControllerService extends Service {
 
                 Log.i("TransferReview", (transferTimeStamp - notifyTimeStamp) + "");
 
-                if ((transferTimeStamp - notifyTimeStamp) >= 150 && packetsFound.containsValue("")) {
+                if ((transferTimeStamp - notifyTimeStamp) >= 250 && packetsFound.containsValue("")) {
                     //TRANSFER FINISHED
 
                     // gather missing packet numbers
@@ -1488,34 +1572,52 @@ public class ControllerService extends Service {
                 }
             }
 
+            //boolean sentReply = false; //patch fix
             // handle reply to robot if there is one in the reply queue
             replyQueueLock.lock();
             if (!(replyQueue.isEmpty())) {
+                if ((replyQueue.get(0).getRobotId()).equals(currConnectedDevice.getDevice().getAddress())) {
 
-                // get reply package
-                ReplyPackage replyPackage = replyQueue.remove(0);
-                replyQueueLock.unlock();
+                    // get reply package
+                    ReplyPackage replyPackage = replyQueue.remove(0);
+                    replyQueueLock.unlock();
 
-                //enable indications
-                subscribe(missingPacketRead, true, 1, currConnectedDevice);
-                try {
-                    makeRobotBlock.take();
-                } catch (InterruptedException ex) {
-                    Log.e("makeRobot()", "failed to take from blocking queue");
+                    //enable indications
+                    subscribe(missingPacketRead, true, 1, currConnectedDevice);
+                    try {
+                        makeRobotBlock.take();
+                    } catch (InterruptedException ex) {
+                        Log.e("makeRobot()", "failed to take from blocking queue");
+                    }
+
+                    // call handleReplyMessage to send reply to robot
+                    handleReplyMessage(replyPackage);
+                    // when server has confirmed it received the entire message
+                    try {
+                        makeRobotBlock.take();
+                    } catch (Exception ex) {
+                        Log.e("makeRobot()", "failed to take from blocking queue");
+                    }
+                    //sentReply = true; // patch fix
+                    replyQueueLock.lock();
                 }
-
-                // call handleReplyMessage to send reply to robot
-                handleReplyMessage(replyPackage);
-                replyQueueLock.lock();
             }
             replyQueueLock.unlock();
+
+            // patch fix
+            /*if (sentReply) {
+
+                }
+                currConnectedDevice.disconnect();
+                return;
+            }*/
 
 
             //enable notifications
             subscribe(packetRead, true, 0, currConnectedDevice);
             try {
                 makeRobotBlock.take();
-            } catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {Log.e("makeRobot()", "failed to take from blocking queue");Log.e("makeRobot()", "failed to take from blocking queue");
                 Log.e("makeRobot()", "failed to take from blocking queue");
             }
 
@@ -1770,9 +1872,10 @@ public class ControllerService extends Service {
                 notificationQueueLock.lock();
 
                 while (notificationQueue.isEmpty() && keepAlive) {
+                    Log.i("Controller.Read", "Queue is empty: " + notificationQueue.size());
                     notificationQueueLock.unlock();
                     try {
-                        sleep(20);
+                        sleep(10);
                     } catch (Exception ex) {
                         Log.e("Controller.Read", "Failed sleep");
                     }
@@ -1780,6 +1883,8 @@ public class ControllerService extends Service {
                 }
 
                 if (keepAlive) {
+
+                    //Log.i("Controller.Read", "Starting notif read: " + notificationQueue.size());
 
                     // update time stamp
                     notifyTimeStamp = System.currentTimeMillis();

@@ -37,6 +37,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.zip.CRC32;
 
 import static java.lang.Thread.sleep;
 
@@ -45,6 +46,7 @@ public class NotificationViewService extends Service {
     private ArrayList<Robot> model; // view's copy of the model
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
     private Dialog dialog = null; // emergency dialog for popups
+    private Notification.Builder notif; // builder object for notifications
 
     public NotificationViewService() {}
 
@@ -53,6 +55,7 @@ public class NotificationViewService extends Service {
         Log.i("NotifView.onCreate()", "Service Created");
 
         notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        notif = new Notification.Builder(NotificationViewService.this);
         model = ControllerService.getModel();
 
         // starting model update
@@ -106,18 +109,22 @@ public class NotificationViewService extends Service {
                     // ***displaying push notifications***
 
                     int id = 0; // for content intent and notification
-                    ArrayList<Notification> closestThree = new ArrayList<>(3);
+                    //ArrayList<Notification> theNotifications = new ArrayList<>();
+                    //CRC32 crc32 = new CRC32();
                     for (Robot bot : model) {
 
-                        // if this robot is leaving cancel his notification
+                        // getting id for this bot's notification
+                        //crc32.reset();
+                        //crc32.update(bot.getId().getBytes());
+                        //int id = (int)crc32.getValue();
+
+                        // if this robot is leaving cancel its notification
                         if (!bot.isVisible()) {
                             notifManager.cancel(id);
+                            id++;
                             continue;
                         }
                         // building notification
-                        // builder object
-                        Notification.Builder notif = new Notification.Builder(NotificationViewService.this);
-
                         // get our custom notification layout
                         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_push_notification);
 
@@ -140,6 +147,9 @@ public class NotificationViewService extends Service {
                         }
 
                         notif.setContent(remoteViews);
+
+                        //make notification persistent
+                        notif.setOngoing(true);
 
                         //notif.setLargeIcon(BitmapFactory.decodeResource(getResources(), bot.getImage()));
 
@@ -176,20 +186,27 @@ public class NotificationViewService extends Service {
                         dismissIntent.setAction(DISMISS);
                         notif.addAction(R.drawable.dismiss, "Dismiss", PendingIntent.getBroadcast(NotificationViewService.this,
                                 0, dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT));
-                        *///notifManager.notify(id/*change*/, notif.build());
+                        */
 
+                        notifManager.notify(id, notif.build());
+                        //Log.i("NotifView", "ID: " + id + "Bot: " + bot.getName());
 
-                        closestThree.add(notif.build());
+                        //theNotifications.add(notif.build());
+                        //closestThree.add(notif.build());
                         id++;
-                        if (id == 3) {
-                            break;
-                        }
+                        //if (id == 3) {
+                        //    break;
+                        //}
                     }
 
                     // notify
-                    for (int i = (closestThree.size()-1); i > -1; i--) {
-                        notifManager.notify(i, closestThree.remove(i));
-                    }
+                    //for (int i = (theNotifications.size()-1); i > -1; i--) {
+                       // notifManager.notify(theNotifications.remove(i));
+                    //}
+                    //for (int i = 0; i < theNotifications.size(); i++) {
+                    //        notifManager.notify(i, theNotifications.get(i));
+                    //}
+
                     // *** end displaying push notifications ***
 
                     // ***displaying emergency dialog (pull notifications)***
@@ -204,9 +221,10 @@ public class NotificationViewService extends Service {
                                 // get the last dialog in the progression
                                 final JSONObject lastProgressionElement = progression.getJSONObject(progression.length() - 1);
 
-                                // check it's popup field
+                                // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        || progression.length() == 1) {
+                                        //|| progression.length() == 1
+                                        ) {
                                     // if here then make this progression element an emergency dialog
                                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                                         @Override
@@ -250,12 +268,16 @@ public class NotificationViewService extends Service {
         dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
         dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
         // setting title of dialog
-        dialog.setTitle(bot.getName() + " Alert Message!");
+        dialog.setTitle( "Message from " + bot.getName());
+
         dialog.setCanceledOnTouchOutside(false); //USE THIS
 
         try {
             // get responses (buttons
             final JSONArray responses = progressionElement.getJSONArray("responses");
+
+            // status of robot to display
+            String status = bot.getCurrState();
 
             // figure out which layout to use
             switch (responses.length()) {
@@ -303,6 +325,42 @@ public class NotificationViewService extends Service {
                                 Log.e("NotifView.Dialog", stringWriter.toString());
                             }
 
+                        }
+                    });
+
+                    // set status of robot
+                    if (status.equals("ok")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_ok);
+                    } else if (status.equals("safe")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_safe);
+                    } else if (status.equals("dangerous")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_dangerous);
+                    } else if (status.equals("help")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_help);
+                    } else if (status.equals("off")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_off);
+                    }
+
+                    // set content of progression
+                    ((TextView)dialog.findViewById(R.id.alert_two_content)).setText(progressionElement.getString("content"));
+
+                    // setting clickable action for later and more info
+                    ((Button)dialog.findViewById(R.id.alert_two_info)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                    RobotLink.class)
+                                    .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                            dialog.dismiss();
+                        }
+                    });
+
+                    ((Button)dialog.findViewById(R.id.alert_two_later)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //get rid of dialog box and don't show again for this robot
+                            dialog.dismiss();
                         }
                     });
 
@@ -375,6 +433,41 @@ public class NotificationViewService extends Service {
                         }
                     });
 
+                    // set status of robot
+                    if (status.equals("ok")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_three_img)).setImageResource(R.drawable.svg_ok);
+                    } else if (status.equals("safe")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_three_img)).setImageResource(R.drawable.svg_safe);
+                    } else if (status.equals("dangerous")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_three_img)).setImageResource(R.drawable.svg_dangerous);
+                    } else if (status.equals("help")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_three_img)).setImageResource(R.drawable.svg_help);
+                    } else if (status.equals("off")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_three_img)).setImageResource(R.drawable.svg_off);
+                    }
+
+                    // set content of progression
+                    ((TextView)dialog.findViewById(R.id.alert_three_content)).setText(progressionElement.getString("content"));
+
+                    // setting clickable action for later and more info
+                    ((Button)dialog.findViewById(R.id.alert_three_info)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                    RobotLink.class)
+                                    .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                            dialog.dismiss();
+                        }
+                    });
+
+                    ((Button)dialog.findViewById(R.id.alert_three_later)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //get rid of dialog box and don't show again for this robot
+                            dialog.dismiss();
+                        }
+                    });
                     break;
                 // 4 buttons
                 case 4:
@@ -464,31 +557,45 @@ public class NotificationViewService extends Service {
 
                         }
                     });
+
+                    // set status of robot
+                    if (status.equals("ok")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_four_img)).setImageResource(R.drawable.svg_ok);
+                    } else if (status.equals("safe")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_four_img)).setImageResource(R.drawable.svg_safe);
+                    } else if (status.equals("dangerous")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_four_img)).setImageResource(R.drawable.svg_dangerous);
+                    } else if (status.equals("help")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_four_img)).setImageResource(R.drawable.svg_help);
+                    } else if (status.equals("off")) {
+                        ((ImageView)dialog.findViewById(R.id.alert_four_img)).setImageResource(R.drawable.svg_off);
+                    }
+
+                    // set content of progression
+                    ((TextView)dialog.findViewById(R.id.alert_four_content)).setText(progressionElement.getString("content"));
+
+                    // setting clickable action for later and more info
+                    ((Button)dialog.findViewById(R.id.alert_four_info)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                    RobotLink.class)
+                                    .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                            dialog.dismiss();
+                        }
+                    });
+
+                    ((Button)dialog.findViewById(R.id.alert_four_later)).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            //get rid of dialog box and don't show again for this robot
+                            dialog.dismiss();
+                        }
+                    });
+
                     break;
             }
-
-            // set content of progression
-            ((TextView)dialog.findViewById(R.id.alert_two_content)).setText(progressionElement.getString("content"));
-
-            // setting clickable action for later and more info
-            ((Button)dialog.findViewById(R.id.alert_two_info)).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
-                            RobotLink.class)
-                            .putExtra("EXTRA_ROBOT_ID", bot.getId())
-                            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                    dialog.dismiss();
-                }
-            });
-
-            ((Button)dialog.findViewById(R.id.alert_two_later)).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    //get rid of dialog box and don't show again for this robot
-                    dialog.dismiss();
-                }
-            });
 
         } catch (JSONException ex) {
             StringWriter stringWriter = new StringWriter();
@@ -496,22 +603,6 @@ public class NotificationViewService extends Service {
             ex.printStackTrace(printWriter);
             Log.e("NotifView.Dialog", stringWriter.toString());
         }
-
-
-        // set status of robot
-        String status = bot.getCurrState();
-        if (status.equals("ok")) {
-            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_ok);
-        } else if (status.equals("safe")) {
-            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_safe);
-        } else if (status.equals("dangerous")) {
-            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_dangerous);
-        } else if (status.equals("help")) {
-            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_help);
-        } else if (status.equals("off")) {
-            ((ImageView)dialog.findViewById(R.id.alert_two_img)).setImageResource(R.drawable.svg_off);
-        }
-
 
         // put bot's image in dialog title
         if (bot.getImage() == null) {

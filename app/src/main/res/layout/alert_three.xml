@@ -19,8 +19,8 @@
 
     <ImageView
         android:id="@+id/alert_three_img"
-        android:layout_width="45dp"
-        android:layout_height="45dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:src="@drawable/svg_ok"
         android:layout_marginTop="8dp"
         android:layout_alignParentTop="true"
@@ -34,6 +34,7 @@
         android:textAllCaps="false"
         android:layout_marginEnd="16dp"
         android:layout_below="@+id/alert_three_img"
+        android:layout_marginTop="15dp"
         android:layout_alignParentEnd="true" />
 
     <Button

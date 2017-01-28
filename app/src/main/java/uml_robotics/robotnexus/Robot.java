@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 
 import org.json.JSONArray;
 
+import java.util.zip.Checksum;
+
 /**
  * Robot object used by the model and controller
  */
@@ -19,12 +21,20 @@ public class Robot {
     private String model; // the make of a robot
     private State currState;
     private JSONArray progression = new JSONArray(); // most recent progression for this robot
-
+    private long statusHashValue; //checksum value computed from most recent update string
 
     public Robot(int rssi, String id) {
         this.proximity = rssi;
         this.id = id;
         this.currState = State.NOT_SET;
+    }
+
+    public void setStatusHashValue(long statusHashValue) {
+        this.statusHashValue = statusHashValue;
+    }
+
+    public long getStatusHashValue() {
+        return statusHashValue;
     }
 
     public void setVisible(boolean visible) {
@@ -119,6 +129,7 @@ public class Robot {
         robot.setImage(this.getImage());
         robot.setProgression(this.getProgression());
         robot.setVisible(this.isVisible());
+        robot.setStatusHashValue(this.getStatusHashValue());
         return robot;
     }
 
