@@ -375,10 +375,12 @@ public class RobotLink extends AppCompatActivity {
             try {
 
                 // object for using layout files
-                LayoutInflater inflater =
+                final LayoutInflater inflater =
                         (LayoutInflater)getSystemService(LAYOUT_INFLATER_SERVICE);
 
                 RelativeLayout dialogBox = null;
+
+                LinearLayout responseText = null;
 
                 // get this element in the progression
                 final JSONObject progressionElement = progression.getJSONObject(i);
@@ -398,6 +400,22 @@ public class RobotLink extends AppCompatActivity {
                     TextView contentView = (TextView) dialogBox.findViewById(R.id.dialog_zero_content);
                     contentView.setText(Html.fromHtml(progressionElement.getString("content")));
 
+                    // if true then the user has already responded to this prog element
+                    if (!progressionElement.isNull("selection")) {
+                        String responseId = progressionElement.getString("selection");
+                        for (int j = 0; j < numOfResponses; j++) {
+                            if (responseId.equals(responses.getJSONObject(j).getString("id"))) {
+                                //set text as
+                                responseText = (LinearLayout)inflater
+                                        .inflate(R.layout.dialog_response, null, false);
+                                ((TextView)responseText.findViewById(R.id.dialog_response_text)).setText(
+                                        "Your response: " + responses.getJSONObject(j).getString("value")
+                                );
+                                break;
+                            }
+                        }
+                    }
+
                 } else if (numOfResponses == 1) {
                     // 1 button
                     dialogBox = (RelativeLayout)inflater.inflate(R.layout.dialog_one, null, false);
@@ -416,6 +434,23 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
+
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -447,6 +482,22 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -461,6 +512,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -495,6 +561,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -509,6 +590,22 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -524,6 +621,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement3.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -561,6 +673,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -575,6 +702,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -590,6 +732,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement3.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -605,6 +762,21 @@ public class RobotLink extends AppCompatActivity {
                             try {
                                 ControllerService.addToReplyQueue(robot.getId(),
                                         progressionElement.getString("msgid"), responseElement4.getString("id"));
+
+                                //display waiting box
+                                RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
+                                TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
+                                contentView.setText("Waiting for robot...");
+                                scrollLayout.addView(waitBox);
+
+                                // setting progression dialog scroll view to end
+                                final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
+                                scrollView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scrollView.fullScroll(View.FOCUS_DOWN);
+                                    }
+                                });
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -617,6 +789,11 @@ public class RobotLink extends AppCompatActivity {
                 }
 
                 scrollLayout.addView(dialogBox);
+
+                //if there was a response to this progression element then show it
+                if (responseText != null) {
+                    scrollLayout.addView(responseText);
+                }
 
                 // setting progression dialog scroll view to end
                 final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
