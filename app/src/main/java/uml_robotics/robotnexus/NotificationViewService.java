@@ -37,6 +37,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.zip.CRC32;
 
 import static java.lang.Thread.sleep;
@@ -47,6 +48,8 @@ public class NotificationViewService extends Service {
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
     private Dialog dialog = null; // emergency dialog for popups
     private Notification.Builder notif; // builder object for notifications
+    // used for making sure the same dialog is not displayed twice
+    private HashMap<String, String> botsThatMessaged;
 
     public NotificationViewService() {}
 
@@ -56,6 +59,7 @@ public class NotificationViewService extends Service {
 
         notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         notif = new Notification.Builder(NotificationViewService.this);
+        botsThatMessaged = new HashMap<>();
         model = ControllerService.getModel();
 
         // starting model update
@@ -225,16 +229,34 @@ public class NotificationViewService extends Service {
                                 if (lastProgressionElement.getBoolean("popup")
                                         //|| progression.length() == 1
                                         ) {
-                                    // if here then make this progression element an emergency dialog
-                                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (dialog == null || !dialog.isShowing()) {
-                                                displayDialog(bot, lastProgressionElement);
-                                            }
+
+                                    if (botsThatMessaged.containsKey(bot.getId())) {
+                                        // check to see if we already messaged user
+                                        if (!(botsThatMessaged.get(bot.getId())
+                                                .equals(lastProgressionElement.getString("msgid")))) {
+                                            // if here then make this progression element an emergency dialog
+                                            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    if (dialog == null || !dialog.isShowing()) {
+                                                        displayDialog(bot, lastProgressionElement);
+                                                    }
+                                                }
+                                            });
+                                            break; // just show one emergency dialog at a time
                                         }
-                                    });
-                                    break; // just show one emergency dialog at a time
+                                    } else {
+                                        // if here then make this progression element an emergency dialog
+                                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (dialog == null || !dialog.isShowing()) {
+                                                    displayDialog(bot, lastProgressionElement);
+                                                }
+                                            }
+                                        });
+                                        break; // just show one emergency dialog at a time
+                                    }
                                 }
                             }
 
@@ -261,6 +283,7 @@ public class NotificationViewService extends Service {
     }
 
     public void displayDialog(final Robot bot, final JSONObject progressionElement) {
+
 
         // creating dialog
         dialog = new Dialog(NotificationViewService.this);
@@ -596,6 +619,9 @@ public class NotificationViewService extends Service {
 
                     break;
             }
+
+            //add this popup so it won't get displayed again
+            botsThatMessaged.put(bot.getId(), progressionElement.getString("msgid"));
 
         } catch (JSONException ex) {
             StringWriter stringWriter = new StringWriter();
