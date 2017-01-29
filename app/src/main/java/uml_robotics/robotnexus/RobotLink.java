@@ -460,6 +460,9 @@ public class RobotLink extends AppCompatActivity {
                                 //disabling button
                                 button1.setEnabled(false);
 
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -486,7 +489,6 @@ public class RobotLink extends AppCompatActivity {
                     final JSONObject responseElement2 = responses.getJSONObject(1);
                     button1.setText(responseElement1.getString("value"));
                     button2.setText(responseElement2.getString("value"));
-                    final RelativeLayout finalDialogBox = dialogBox;
                     button1.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -512,6 +514,9 @@ public class RobotLink extends AppCompatActivity {
                                 //disabling buttons
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -546,6 +551,9 @@ public class RobotLink extends AppCompatActivity {
                                 //disabling buttons
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -602,6 +610,9 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
 
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -636,6 +647,9 @@ public class RobotLink extends AppCompatActivity {
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -672,6 +686,9 @@ public class RobotLink extends AppCompatActivity {
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement3.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -732,6 +749,9 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -767,6 +787,9 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -805,6 +828,9 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement3.getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -841,7 +867,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
-                                
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + robot.getName() + " to " + responseElement4.getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);

@@ -35,9 +35,11 @@ import org.json.JSONObject;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.zip.CRC32;
 
@@ -324,12 +326,18 @@ public class NotificationViewService extends Service {
                                         progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(0).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
                                 ex.printStackTrace(printWriter);
                                 Log.e("NotifView.Dialog", stringWriter.toString());
                             }
+
                         }
                     });
 
@@ -342,6 +350,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(1).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -378,6 +391,10 @@ public class NotificationViewService extends Service {
                                     .putExtra("EXTRA_ROBOT_ID", bot.getId())
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected more info on " + bot.getName()
+                                    + " from popup");
                         }
                     });
 
@@ -386,6 +403,10 @@ public class NotificationViewService extends Service {
                         public void onClick(View v) {
                             //get rid of dialog box and don't show again for this robot
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected later on " + bot.getName()
+                                    + " from popup");
                         }
                     });
 
@@ -411,6 +432,11 @@ public class NotificationViewService extends Service {
                                         progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(0).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -429,6 +455,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(1).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -448,6 +479,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(2).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -484,6 +520,10 @@ public class NotificationViewService extends Service {
                                     .putExtra("EXTRA_ROBOT_ID", bot.getId())
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected more info on " + bot.getName()
+                                    + " from popup");
                         }
                     });
 
@@ -492,6 +532,11 @@ public class NotificationViewService extends Service {
                         public void onClick(View v) {
                             //get rid of dialog box and don't show again for this robot
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected later on " + bot.getName()
+                                    + " from popup");
+
                         }
                     });
                     break;
@@ -518,6 +563,11 @@ public class NotificationViewService extends Service {
                                         progressionElement.getString("msgid"), responses.getJSONObject(0).getString("id"));
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(0).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -536,6 +586,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(1).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -555,6 +610,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(2).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -574,6 +634,11 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                        + ": Requested " + bot.getName() + " from popup to "
+                                        + responses.getJSONObject(3).getString("value"));
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -610,6 +675,11 @@ public class NotificationViewService extends Service {
                                     .putExtra("EXTRA_ROBOT_ID", bot.getId())
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected more info on " + bot.getName()
+                                    + " from popup");
+
                         }
                     });
 
@@ -618,6 +688,11 @@ public class NotificationViewService extends Service {
                         public void onClick(View v) {
                             //get rid of dialog box and don't show again for this robot
                             dialog.dismiss();
+
+                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                    + ": Selected later on " + bot.getName()
+                                    + " from popup");
+
                         }
                     });
 
