@@ -29,7 +29,9 @@ import org.json.JSONObject;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.locks.ReadWriteLock;
 
 /**
@@ -109,6 +111,8 @@ public class RobotLink extends AppCompatActivity {
         scrollLayout.addView(view3);*/
 
         displayProgression(robot.getProgression());
+
+        //ControllerService.Log(DateFormat.getTimeInstance().format(new Date()) + ": THIS IS A TEST");
 
         /**
          * MOCK-UP progression dialog

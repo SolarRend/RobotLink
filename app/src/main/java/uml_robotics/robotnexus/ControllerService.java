@@ -33,16 +33,22 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -120,6 +126,8 @@ public class ControllerService extends Service {
     // boolean that holds the visible value in the advertisement -> is global because no way to pass
     // to connect and discover callbacks
     private boolean isCurrRobotVisible = true;
+    //holds the date and time of when the app was started
+    private static String dateAndTimeOfAppStart = null;
 
     /*
      * characteristics/values of our currently connected robot
@@ -149,6 +157,9 @@ public class ControllerService extends Service {
 
         // set this instance
         controllerService = this;
+
+        // getting date and time
+        dateAndTimeOfAppStart = DateFormat.getDateTimeInstance().format(new Date());
 
         // sleeping for one second to give looper a chance to make handler
         try {
@@ -2216,6 +2227,38 @@ public class ControllerService extends Service {
             }
         }
     }
+
+
+    public static void Log(String logText) {
+
+        File file = new File("sdcard/" + dateAndTimeOfAppStart + "_robotnexus_log.txt");
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException ex) {
+                StringWriter stringWriter = new StringWriter();
+                PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                ex.printStackTrace(printWriter);
+                Log.e("Controller.Log", stringWriter.toString());
+            }
+        }
+
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+            writer.append(logText);
+            writer.newLine();
+            writer.flush();
+            writer.close();
+
+        } catch(IOException ex) {
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+            ex.printStackTrace(printWriter);
+            Log.e("Controller.Log", stringWriter.toString());
+        }
+    }
+
 
     /**
      * **************************************
