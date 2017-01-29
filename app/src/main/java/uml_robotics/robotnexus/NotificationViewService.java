@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.NotificationCompat;
+import android.text.Html;
 import android.text.LoginFilter;
 import android.util.Log;
 import android.view.View;
@@ -365,7 +366,8 @@ public class NotificationViewService extends Service {
                     }
 
                     // set content of progression
-                    ((TextView)dialog.findViewById(R.id.alert_two_content)).setText(progressionElement.getString("content"));
+                    ((TextView)dialog.findViewById(R.id.alert_two_content))
+                            .setText(Html.fromHtml(progressionElement.getString("content")));
 
                     // setting clickable action for later and more info
                     ((Button)dialog.findViewById(R.id.alert_two_info)).setOnClickListener(new View.OnClickListener() {
@@ -470,7 +472,8 @@ public class NotificationViewService extends Service {
                     }
 
                     // set content of progression
-                    ((TextView)dialog.findViewById(R.id.alert_three_content)).setText(progressionElement.getString("content"));
+                    ((TextView)dialog.findViewById(R.id.alert_three_content))
+                            .setText(Html.fromHtml(progressionElement.getString("content")));
 
                     // setting clickable action for later and more info
                     ((Button)dialog.findViewById(R.id.alert_three_info)).setOnClickListener(new View.OnClickListener() {
@@ -595,7 +598,8 @@ public class NotificationViewService extends Service {
                     }
 
                     // set content of progression
-                    ((TextView)dialog.findViewById(R.id.alert_four_content)).setText(progressionElement.getString("content"));
+                    ((TextView)dialog.findViewById(R.id.alert_four_content))
+                            .setText(Html.fromHtml(progressionElement.getString("content")));
 
                     // setting clickable action for later and more info
                     ((Button)dialog.findViewById(R.id.alert_four_info)).setOnClickListener(new View.OnClickListener() {
