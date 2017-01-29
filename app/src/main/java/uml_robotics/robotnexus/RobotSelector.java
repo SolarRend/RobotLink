@@ -10,8 +10,10 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 
 public class RobotSelector extends AppCompatActivity {
     private ArrayList<Robot> model; // view's copy of the model
@@ -25,6 +27,7 @@ public class RobotSelector extends AppCompatActivity {
         setContentView(R.layout.activity_robot_selector);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
 
         model = ControllerService.getModel(); // getting view's copy of the model
 
@@ -48,6 +51,9 @@ public class RobotSelector extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                        + ": Selected " + displayAdapter.getItem(position).getName() +
+                        " from nearby robots");
                 Intent intent = new Intent(RobotSelector.this, RobotLink.class);
                 intent.putExtra("EXTRA_ROBOT_ID", displayAdapter.getItem(position).getId());
                 startActivity(intent);
@@ -60,6 +66,8 @@ public class RobotSelector extends AppCompatActivity {
         super.onStart();
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
+        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                + ": Looking at nearby robots");
     }
 
     @Override
@@ -77,6 +85,8 @@ public class RobotSelector extends AppCompatActivity {
         super.onStop();
         // end our update
         modelUpdate.close();
+        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                + ": No longer looking at nearby robots");
     }
 
     @Override
@@ -158,6 +168,8 @@ public class RobotSelector extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         //super.onBackPressed();
+        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                + ": No longer looking at nearby robots");
         Intent startMain = new Intent(Intent.ACTION_MAIN);
         startMain.addCategory(Intent.CATEGORY_HOME);
         startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

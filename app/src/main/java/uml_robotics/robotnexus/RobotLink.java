@@ -112,8 +112,6 @@ public class RobotLink extends AppCompatActivity {
 
         displayProgression(robot.getProgression());
 
-        //ControllerService.Log(DateFormat.getTimeInstance().format(new Date()) + ": THIS IS A TEST");
-
         /**
          * MOCK-UP progression dialog
          */
@@ -259,6 +257,9 @@ public class RobotLink extends AppCompatActivity {
         // start model update
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
+
+        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                + ": Looking at " + robot.getName());
     }
 
     @Override
@@ -275,6 +276,8 @@ public class RobotLink extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         modelUpdate.close();
+        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                + ": No longer looking at " + robot.getName());
     }
 
     @Override
@@ -429,7 +432,7 @@ public class RobotLink extends AppCompatActivity {
                     contentView.setText(Html.fromHtml(progressionElement.getString("content")));
 
                     //set button values
-                    Button button1 = (Button) dialogBox.findViewById(R.id.dialog_one_button1);
+                    final Button button1 = (Button) dialogBox.findViewById(R.id.dialog_one_button1);
                     final JSONObject responseElement1 = responses.getJSONObject(0);
                     button1.setText(responseElement1.getString("value"));
                     button1.setOnClickListener(new View.OnClickListener() {
@@ -453,6 +456,9 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling button
+                                button1.setEnabled(false);
 
 
                             } catch (JSONException ex) {
@@ -474,12 +480,13 @@ public class RobotLink extends AppCompatActivity {
                     contentView.setText(Html.fromHtml(progressionElement.getString("content")));
 
                     //set button values
-                    Button button1 = (Button) dialogBox.findViewById(R.id.dialog_two_button1);
-                    Button button2 = (Button) dialogBox.findViewById(R.id.dialog_two_button2);
+                    final Button button1 = (Button) dialogBox.findViewById(R.id.dialog_two_button1);
+                    final Button button2 = (Button) dialogBox.findViewById(R.id.dialog_two_button2);
                     final JSONObject responseElement1 = responses.getJSONObject(0);
                     final JSONObject responseElement2 = responses.getJSONObject(1);
                     button1.setText(responseElement1.getString("value"));
                     button2.setText(responseElement2.getString("value"));
+                    final RelativeLayout finalDialogBox = dialogBox;
                     button1.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -501,6 +508,10 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -531,6 +542,11 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -550,9 +566,9 @@ public class RobotLink extends AppCompatActivity {
                     contentView.setText(Html.fromHtml(progressionElement.getString("content")));
 
                     //set button values
-                    Button button1 = (Button) dialogBox.findViewById(R.id.dialog_three_button1);
-                    Button button2 = (Button) dialogBox.findViewById(R.id.dialog_three_button2);
-                    Button button3 = (Button) dialogBox.findViewById(R.id.dialog_three_button3);
+                    final Button button1 = (Button) dialogBox.findViewById(R.id.dialog_three_button1);
+                    final Button button2 = (Button) dialogBox.findViewById(R.id.dialog_three_button2);
+                    final Button button3 = (Button) dialogBox.findViewById(R.id.dialog_three_button3);
                     final JSONObject responseElement1 = responses.getJSONObject(0);
                     final JSONObject responseElement2 = responses.getJSONObject(1);
                     final JSONObject responseElement3 = responses.getJSONObject(2);
@@ -580,6 +596,12 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -609,6 +631,11 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -640,6 +667,12 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -659,10 +692,10 @@ public class RobotLink extends AppCompatActivity {
                     contentView.setText(Html.fromHtml(progressionElement.getString("content")));
 
                     //set button values
-                    Button button1 = (Button) dialogBox.findViewById(R.id.dialog_four_button1);
-                    Button button2 = (Button) dialogBox.findViewById(R.id.dialog_four_button2);
-                    Button button3 = (Button) dialogBox.findViewById(R.id.dialog_four_button3);
-                    Button button4 = (Button) dialogBox.findViewById(R.id.dialog_four_button4);
+                    final Button button1 = (Button) dialogBox.findViewById(R.id.dialog_four_button1);
+                    final Button button2 = (Button) dialogBox.findViewById(R.id.dialog_four_button2);
+                    final Button button3 = (Button) dialogBox.findViewById(R.id.dialog_four_button3);
+                    final Button button4 = (Button) dialogBox.findViewById(R.id.dialog_four_button4);
                     final JSONObject responseElement1 = responses.getJSONObject(0);
                     final JSONObject responseElement2 = responses.getJSONObject(1);
                     final JSONObject responseElement3 = responses.getJSONObject(2);
@@ -692,6 +725,13 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+                                button4.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -721,6 +761,13 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+                                button4.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -751,6 +798,13 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+                                button4.setEnabled(false);
+
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -781,6 +835,13 @@ public class RobotLink extends AppCompatActivity {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
                                 });
+
+                                //disabling buttons
+                                button1.setEnabled(false);
+                                button2.setEnabled(false);
+                                button3.setEnabled(false);
+                                button4.setEnabled(false);
+                                
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);

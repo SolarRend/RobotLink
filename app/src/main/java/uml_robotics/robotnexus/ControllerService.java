@@ -2229,6 +2229,10 @@ public class ControllerService extends Service {
     }
 
 
+    /**
+     * used by the application to log user activity
+     * @param logText is the entry to be appended to the log
+     */
     public static void Log(String logText) {
 
         File file = new File("sdcard/" + dateAndTimeOfAppStart + "_robotnexus_log.txt");
