@@ -321,6 +321,10 @@ public class ControllerService extends Service {
                                     gatt.close();
                                     currConnectedDevice = null;
                                     isConnected = false;
+                                    // make sure these blocking queues are cleared if we
+                                    // disconnected abruptly
+                                    makeRobotBlock.clear();
+                                    characteristicWriteBlock.clear();
                                     // safety-net
                                     if (btAdapter != null) {
                                         // resetting BT
@@ -414,6 +418,11 @@ public class ControllerService extends Service {
                                         //if (notifManager != null) {
                                         //notifManager.cancelAll();
                                         //}
+
+                                        // make sure these blocking queues are cleared if we
+                                        // disconnected abruptly
+                                        makeRobotBlock.clear();
+                                        characteristicWriteBlock.clear();
 
                                         // safety-net
                                         if (btAdapter != null) {
@@ -527,6 +536,8 @@ public class ControllerService extends Service {
                             }
                         } else {
                             Log.e("onCharacteristicRead", "Reading failed: " + characteristic.getUuid().toString());
+                            makeRobotBlock.add(1);
+                            currConnectedDevice.disconnect();
                         }
                     }
 
@@ -579,9 +590,14 @@ public class ControllerService extends Service {
                                     getUuid().toString().equals("00002a13-30de-4630-9b59-27228d45bf11")) {
                                 // this characteristic is saying if they missed a packet or not
                                 Log.i("onCharaChange", "Indicate: "
-                                        + Arrays.toString(characteristic.getValue()));
+                                        + characteristic.getValue()[0]);
                                 try {
                                     makeRobotBlock.add(1); // patch fix
+                                    if (characteristic.getValue()[0] != 0) {
+                                        Log.i("onCharaChange", "Something weird happened -> disconnect");
+                                        currConnectedDevice.disconnect();
+                                        makeRobotBlock.clear();
+                                    }
                                 } catch (Exception ex){
                                     StringWriter stringWriter = new StringWriter();
                                     PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -600,7 +616,7 @@ public class ControllerService extends Service {
                                                       BluetoothGattCharacteristic characteristic,
                                                       int status) {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
-                            Log.i("OnCharaWrite", "Successfully written");
+                            Log.i("OnCharaWrite", "Successfully written: " + characteristic.getUuid());
                             characteristicWriteBlock.offer(1);
                         }
                     }
@@ -731,6 +747,7 @@ public class ControllerService extends Service {
                                         //robotsAsBTDevices.clear();
                                         currConnectedDevice.disconnect();
                                     } catch (JSONException ex) {
+                                        currConnectedDevice.disconnect();
                                         StringWriter stringWriter = new StringWriter();
                                         PrintWriter printWriter = new PrintWriter(stringWriter, true);
                                         ex.printStackTrace(printWriter);
@@ -981,6 +998,8 @@ public class ControllerService extends Service {
                     //}
 
 
+                    Log.i(TAG, device.getAddress());
+
                     // check to see if there is a reply job in queue
                     replyQueueLock.lock();
                     if (!(replyQueue.isEmpty())) {
@@ -1002,7 +1021,7 @@ public class ControllerService extends Service {
                     if (!robotsAsBTDevices.containsKey(device)) {
 
                         List<String> listOfStructures = parseScanRecord(scanRecord);
-                        Log.i(TAG, device.getAddress());
+                        //Log.i(TAG, device.getAddress());
                         for (String s : listOfStructures) {
                             Log.i(TAG, s);
                         }
@@ -1462,6 +1481,7 @@ public class ControllerService extends Service {
                         if (bitString.length() == 8) {
                             missedPackets[byteIndex] = (byte) Integer.parseInt(bitString, 2);
                             byteIndex++;
+                            Log.i("TransferReview", "Missed packets: " + bitString);
                             bitString = "";
                         }
 
@@ -2011,7 +2031,15 @@ public class ControllerService extends Service {
                             // set up map with correct number of packets wanted
                             packetsFound.clear();
                             if (totalNumOfPackets >= 128) {
+                                statusReview.close();
+                                notificationQueue.clear();
+                                Log.i("Controller.Read", "Before block: 128");
+                                try {
+                                    characteristicWriteBlock.take();
+                                } catch (Exception ex) {
 
+                                }
+                                Log.i("Controller.Read", "After block: 128");
                                 for (int i = 0; i < 128; i++) {
                                     packetsFound.put(i, "");
                                 }
@@ -2024,13 +2052,21 @@ public class ControllerService extends Service {
                                 close();
                                 notificationQueue.clear();
                                 // make sure characteristic has been written to
+                                Log.i("Controller.Read", "Before block: 0");
                                 try {
                                     characteristicWriteBlock.take();
-                                } catch (Exception ex) {
-
-                                }
+                                } catch (Exception ex) {}
+                                Log.i("Controller.Read", "After block: 0");
                                 sendBroadcast(new Intent().setAction(UPDATE_COMPLETE));
+
                             } else {
+                                statusReview.close();
+                                notificationQueue.clear();
+                                Log.i("Controller.Read", "Before block: <128");
+                                try {
+                                    characteristicWriteBlock.take();
+                                } catch (Exception ex) {}
+                                Log.i("Controller.Read", "After block: <128");
 
                                 for (int i = 0; i < totalNumOfPackets; i++) {
                                     packetsFound.put(i, "");

@@ -1,5 +1,6 @@
 package uml_robotics.robotnexus;
 
+import android.app.ProgressDialog;
 import android.graphics.Color;
 import android.media.Image;
 import android.os.Bundle;
@@ -43,6 +44,7 @@ public class RobotLink extends AppCompatActivity {
     private ModelUpdate modelUpdate; // responsible for keeping view's model up to date
     private Handler robotLinkHandler; //handler to manipulate robot link UI
     private LinearLayout scrollLayout; // view for appending progressions on
+    private ProgressDialog waitDialog; // popup screen for when sending a response to robot
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +101,7 @@ public class RobotLink extends AppCompatActivity {
         }
 
         scrollLayout = (LinearLayout)findViewById(R.id.scroll_layout);
+        waitDialog = new ProgressDialog(this);
 
         /*
         LayoutInflater inflater =
@@ -276,6 +279,7 @@ public class RobotLink extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         modelUpdate.close();
+        waitDialog.dismiss();
         ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                 + ": No longer looking at " + robot.getName());
     }
@@ -373,7 +377,6 @@ public class RobotLink extends AppCompatActivity {
         //if (progression == null) {
         //    return;
         //}
-
 
         /**
          * loop through all objects in progression
@@ -497,19 +500,26 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
-                                scrollLayout.addView(waitBox);
+                                scrollLayout.addView(waitBox);*/
+
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 // setting progression dialog scroll view to end
+                                /*
                                 final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
                                 scrollView.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -898,6 +908,9 @@ public class RobotLink extends AppCompatActivity {
                     }
                 });
 
+
+                // disable waiting dialog if it showing
+                waitDialog.dismiss();
 
             } catch (JSONException ex) {
                 StringWriter stringWriter = new StringWriter();
