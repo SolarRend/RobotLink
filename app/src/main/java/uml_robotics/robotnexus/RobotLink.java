@@ -446,6 +446,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -458,7 +459,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling button
                                 button1.setEnabled(false);
@@ -506,6 +513,7 @@ public class RobotLink extends AppCompatActivity {
                                 contentView.setText("Waiting for robot...");
                                 scrollLayout.addView(waitBox);*/
 
+                                //show waiting dialog
                                 waitDialog.setTitle("Sending");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
@@ -544,6 +552,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -556,7 +565,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -601,6 +616,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -613,7 +629,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -639,6 +661,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -651,7 +674,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -678,6 +707,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement3.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -690,7 +720,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -739,6 +775,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement1.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -751,7 +788,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -778,6 +821,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement2.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -790,7 +834,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -818,6 +868,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement3.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -830,7 +881,13 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
@@ -858,6 +915,7 @@ public class RobotLink extends AppCompatActivity {
                                         progressionElement.getString("msgid"), responseElement4.getString("id"));
 
                                 //display waiting box
+                                /*
                                 RelativeLayout waitBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
                                 TextView contentView = (TextView) waitBox.findViewById(R.id.dialog_zero_content);
                                 contentView.setText("Waiting for robot...");
@@ -870,7 +928,12 @@ public class RobotLink extends AppCompatActivity {
                                     public void run() {
                                         scrollView.fullScroll(View.FOCUS_DOWN);
                                     }
-                                });
+                                });*/
+                                //show waiting dialog
+                                waitDialog.setTitle("Sending");
+                                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                waitDialog.setCancelable(false);
+                                waitDialog.show();
 
                                 //disabling buttons
                                 button1.setEnabled(false);
