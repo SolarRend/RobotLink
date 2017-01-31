@@ -128,6 +128,8 @@ public class ControllerService extends Service {
     private boolean isCurrRobotVisible = true;
     //holds the date and time of when the app was started
     private static String dateAndTimeOfAppStart = null;
+    //holds current batch of packets being sent to server
+    private HashMap<Integer, byte[]> outgoingPackets;
 
     /*
      * characteristics/values of our currently connected robot
@@ -264,6 +266,10 @@ public class ControllerService extends Service {
 
                 // lock for the reply queue -> Controller and RobotLink both access
                 replyQueueLock = new ReentrantLock();
+
+
+                // used if server misses packets we send to it
+                outgoingPackets = new HashMap<Integer, byte[]>();
 
 
                 //implementing callback startScan()
@@ -590,13 +596,16 @@ public class ControllerService extends Service {
                                     getUuid().toString().equals("00002a13-30de-4630-9b59-27228d45bf11")) {
                                 // this characteristic is saying if they missed a packet or not
                                 Log.i("onCharaChange", "Indicate: "
-                                        + characteristic.getValue()[0]);
+                                        + Integer.toBinaryString((characteristic.getValue()[0] & 0b11111111) + 256).substring(1)
+                                + " : Length: " + characteristic.getValue().length);
+
                                 try {
-                                    makeRobotBlock.add(1); // patch fix
                                     if (characteristic.getValue()[0] != 0) {
-                                        Log.i("onCharaChange", "Something weird happened -> disconnect");
-                                        currConnectedDevice.disconnect();
-                                        makeRobotBlock.clear();
+                                        Log.i("onCharaChange", "Something weird happened -> resend");
+                                        handleMissingPacketRequest(characteristic.getValue());
+                                    } else {
+                                        outgoingPackets.clear();
+                                        makeRobotBlock.add(1); // proceed
                                     }
                                 } catch (Exception ex){
                                     StringWriter stringWriter = new StringWriter();
@@ -1250,11 +1259,14 @@ public class ControllerService extends Service {
             return true;
         }
 
+        Log.i("Controller.checkUpdate", "Robot checksum: " + robot.getStatusHashValue());
         // get checksum value from server
         for (String s : listOfStructures) {
 
             if ((s.substring(0, 8)).equals("11111111")) {
 
+                Log.i("Controller.checkUpdate", "Ad checksum: "
+                        + Long.parseLong(s.substring(36).replaceAll("\\s",""), 2) + "");
                 // compare against what the last checksum was for this robot
                 if (robot.getStatusHashValue() != Long.parseLong(s.substring(36).replaceAll("\\s",""), 2)) {
                     return true;
@@ -2067,7 +2079,6 @@ public class ControllerService extends Service {
                                     characteristicWriteBlock.take();
                                 } catch (Exception ex) {}
                                 Log.i("Controller.Read", "After block: <128");
-
                                 for (int i = 0; i < totalNumOfPackets; i++) {
                                     packetsFound.put(i, "");
                                 }
@@ -2236,6 +2247,7 @@ public class ControllerService extends Service {
                 System.arraycopy(byteReply, i * 19, packetSend, 1, (packetSend.length - 1));
                 Log.i(TAG, new String(packetSend));
 
+                outgoingPackets.put(i, packetSend);
                 packetWrite.setValue(packetSend);
                 currConnectedDevice.writeCharacteristic(packetWrite);
                 try {
@@ -2253,6 +2265,7 @@ public class ControllerService extends Service {
                 System.arraycopy(byteReply, i * 19, packetSend, 1, (packetSend.length - 1));
                 Log.i(TAG, new String(packetSend));
 
+                outgoingPackets.put(i, packetSend);
                 packetWrite.setValue(packetSend);
                 currConnectedDevice.writeCharacteristic(packetWrite);
                 try {
@@ -2260,6 +2273,35 @@ public class ControllerService extends Service {
                 } catch (InterruptedException ex) {
                     Log.e(TAG, "Failed to take from blocking queue");
                 }
+            }
+        }
+    }
+
+
+    /**
+     * responsible for sending packets that the server missed in the initial send
+     * @param missingPacketNumbers is a byte array indicating which packets were missed
+     */
+
+    private void handleMissingPacketRequest(byte[] missingPacketNumbers) {
+
+        String strMissingPacketNumbers = "";
+                for (byte b : missingPacketNumbers) {
+                    strMissingPacketNumbers+=Integer
+                            .toBinaryString((b & 0b11111111) + 256).substring(1);
+                }
+
+        for (int i = 0; i < outgoingPackets.size(); i++) {
+            if (strMissingPacketNumbers.charAt(i+1) == '1') {
+                packetWrite.setValue(outgoingPackets.get(i));
+                currConnectedDevice.writeCharacteristic(packetWrite);
+                Log.i("handleMissingPackets", "before block");
+                try {
+                    characteristicWriteBlock.take();
+                } catch (InterruptedException ex) {
+                    Log.e("handleMissingPackets", "Failed to take from blocking queue");
+                }
+                Log.i("handleMissingPackets", "after block");
             }
         }
     }
