@@ -16,12 +16,15 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -390,7 +393,7 @@ public class RobotLink extends AppCompatActivity {
 
                 RelativeLayout dialogBox = null;
 
-                LinearLayout responseText = null;
+                RelativeLayout responseText = null;
 
                 // get this element in the progression
                 final JSONObject progressionElement = progression.getJSONObject(i);
@@ -419,12 +422,57 @@ public class RobotLink extends AppCompatActivity {
                         String responseId = progressionElement.getString("selection");
                         for (int j = 0; j < numOfResponses; j++) {
                             if (responseId.equals(responses.getJSONObject(j).getString("id"))) {
-                                //set text as
-                                responseText = (LinearLayout)inflater
-                                        .inflate(R.layout.dialog_response, null, false);
-                                ((TextView)responseText.findViewById(R.id.dialog_response_text)).setText(
-                                        "Your response: " + responses.getJSONObject(j).getString("value")
-                                );
+                                //set response as custom layout
+                                responseText = (RelativeLayout)inflater
+                                        .inflate(R.layout.dialog_response_dropdown, null, false);
+                                // get the spinner
+                                final Spinner dropdown = (Spinner)responseText.findViewById(R.id.dialog_dropdown);
+                                // make list for spinner
+                                final ArrayAdapter<String> dropResponses = new ArrayAdapter<>(RobotLink.this,
+                                        R.layout.text_resource);
+                                for (int k = 0; k < numOfResponses; k++) {
+                                    dropResponses.add(responses.getJSONObject(k).getString("value"));
+                                }
+
+                                dropResponses.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+                                dropdown.setAdapter(dropResponses);
+                                dropdown.setSelection(j, false);
+                                dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                                    @Override
+                                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                        try {
+                                            String responseValue = dropResponses.getItem(position);
+                                            JSONArray responses = progressionElement.getJSONArray("responses");
+                                            for (int i = 0; i < responses.length(); i++) {
+                                                if (responseValue.
+                                                        equals(responses.getJSONObject(i).getString("value"))) {
+
+                                                    ControllerService.addToReplyQueue(robot.getId(),
+                                                            progressionElement.getString("msgid"),
+                                                            responses.getJSONObject(i).getString("id"));
+                                                    break;
+                                                }
+                                            }
+
+                                            //show waiting dialog
+                                            waitDialog.setTitle("Sending message");
+                                            waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                                            waitDialog.setCancelable(false);
+                                            waitDialog.show();
+
+                                        } catch (JSONException ex) {
+                                            StringWriter stringWriter = new StringWriter();
+                                            PrintWriter printWriter = new PrintWriter(stringWriter, true);
+                                            ex.printStackTrace(printWriter);
+                                            Log.e("RobotLink.Progression", stringWriter.toString());
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onNothingSelected(AdapterView<?> parent) {
+
+                                    }
+                                });
                                 break;
                             }
                         }
