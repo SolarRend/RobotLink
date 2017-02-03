@@ -48,6 +48,7 @@ public class RobotLink extends AppCompatActivity {
     private Handler robotLinkHandler; //handler to manipulate robot link UI
     private LinearLayout scrollLayout; // view for appending progressions on
     private ProgressDialog waitDialog; // popup screen for when sending a response to robot
+    private ArrayList<Button> activeButtons; // list containing active buttons
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +106,7 @@ public class RobotLink extends AppCompatActivity {
 
         scrollLayout = (LinearLayout)findViewById(R.id.scroll_layout);
         waitDialog = new ProgressDialog(this);
+        activeButtons = new ArrayList<>();
 
         /*
         LayoutInflater inflater =
@@ -381,6 +383,9 @@ public class RobotLink extends AppCompatActivity {
         //    return;
         //}
 
+        //clear old buttons from list
+        activeButtons.clear();
+
         /**
          * loop through all objects in progression
          */
@@ -422,12 +427,12 @@ public class RobotLink extends AppCompatActivity {
                         String responseId = progressionElement.getString("selection");
                         for (int j = 0; j < numOfResponses; j++) {
                             if (responseId.equals(responses.getJSONObject(j).getString("id"))) {
-                                //set response as custom layout
+                                //set as custom layout
                                 responseText = (RelativeLayout)inflater
                                         .inflate(R.layout.dialog_response_dropdown, null, false);
                                 // get the spinner
                                 final Spinner dropdown = (Spinner)responseText.findViewById(R.id.dialog_dropdown);
-                                // make list for spinner
+                                // list for the spinner
                                 final ArrayAdapter<String> dropResponses = new ArrayAdapter<>(RobotLink.this,
                                         R.layout.text_resource);
                                 for (int k = 0; k < numOfResponses; k++) {
@@ -459,6 +464,11 @@ public class RobotLink extends AppCompatActivity {
                                             waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                             waitDialog.setCancelable(false);
                                             waitDialog.show();
+
+                                            //disable buttons
+                                            for (Button button : activeButtons) {
+                                                button.setEnabled(false);
+                                            }
 
                                         } catch (JSONException ex) {
                                             StringWriter stringWriter = new StringWriter();
@@ -525,7 +535,6 @@ public class RobotLink extends AppCompatActivity {
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
 
-
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
                                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -535,6 +544,7 @@ public class RobotLink extends AppCompatActivity {
                         }
                     });
 
+                    activeButtons.add(button1);
 
                 } else if (numOfResponses == 2) {
                     // 2 buttons
@@ -641,6 +651,8 @@ public class RobotLink extends AppCompatActivity {
 
                         }
                     });
+                    activeButtons.add(button1);
+                    activeButtons.add(button2);
 
                 } else if (numOfResponses == 3) {
                     // 3 buttons
@@ -797,6 +809,10 @@ public class RobotLink extends AppCompatActivity {
 
                         }
                     });
+
+                    activeButtons.add(button1);
+                    activeButtons.add(button2);
+                    activeButtons.add(button3);
 
                 } else if (numOfResponses == 4) {
                     // 4 buttons
@@ -1005,6 +1021,11 @@ public class RobotLink extends AppCompatActivity {
 
                         }
                     });
+
+                    activeButtons.add(button1);
+                    activeButtons.add(button2);
+                    activeButtons.add(button3);
+                    activeButtons.add(button4);
                 }
 
                 scrollLayout.addView(dialogBox);
