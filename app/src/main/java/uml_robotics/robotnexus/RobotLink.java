@@ -396,13 +396,17 @@ public class RobotLink extends AppCompatActivity {
                 final JSONObject progressionElement = progression.getJSONObject(i);
 
                 // get responses which will be turned into buttons
-                JSONArray responses = progressionElement.getJSONArray("responses");
-
+                int numOfResponses = 0;
+                JSONArray responses = null;
+                if (!progressionElement.isNull("responses")) {
+                    responses = progressionElement.getJSONArray("responses");
+                    numOfResponses = responses.length();
+                }
 
                 // use appropriate layout on responses length
-                int numOfResponses = responses.length();
                 if (numOfResponses == 0
-                        || (i+1) != progression.length()) {
+                        || (i+1) != progression.length()
+                        || (!progressionElement.isNull("selection"))) {
                     // no responses received or don't give user buttons to old prog elements
                     dialogBox = (RelativeLayout)inflater.inflate(R.layout.dialog_zero, null, false);
 
@@ -462,7 +466,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -514,7 +518,7 @@ public class RobotLink extends AppCompatActivity {
                                 scrollLayout.addView(waitBox);*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -568,7 +572,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -632,7 +636,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -677,7 +681,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -723,7 +727,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -791,7 +795,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -837,7 +841,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -884,7 +888,7 @@ public class RobotLink extends AppCompatActivity {
                                 });*/
 
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
@@ -930,7 +934,7 @@ public class RobotLink extends AppCompatActivity {
                                     }
                                 });*/
                                 //show waiting dialog
-                                waitDialog.setTitle("Sending");
+                                waitDialog.setTitle("Sending message");
                                 waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
                                 waitDialog.setCancelable(false);
                                 waitDialog.show();
