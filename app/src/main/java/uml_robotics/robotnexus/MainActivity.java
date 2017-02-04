@@ -5,10 +5,13 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+
+import static java.lang.Thread.sleep;
 
 /*
  * DON'T do heavy work in CALLBACKS (~3 threads in pool )
@@ -34,10 +37,12 @@ import android.util.Log;
 
 public class MainActivity extends Activity {
     private Intent controllerIntent;
+    private boolean startedRobotSelector = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.loading_screen);
 
         // source: http://stackoverflow.com/questions/7569937/unable-to-add-window-android-view-viewrootw44da9bc0-permission-denied-for-t#answer-34061521
         /** check if we already  have permission to draw over other apps */
@@ -59,11 +64,23 @@ public class MainActivity extends Activity {
                 this.startService(controllerIntent);
                 Log.i("MAIN.onCreate()", "Started Controller");
             }
+        }
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-            // starting the *real main activity* which will be a navigation screen for all robots in the area
-            this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
-            Log.i("MAIN.onCreate()", "Transitioning to RobotSelector activity");
+        if (!startedRobotSelector) {
+            startedRobotSelector = true;
+            new Handler(getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // starting the *real main activity* which will be a navigation screen for all robots in the area
+                    MainActivity.this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
+                    Log.i("MAIN.onResume()", "Transitioning to RobotSelector activity");
+                }
+            }, 3500);
         }
     }
 
