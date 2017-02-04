@@ -10,9 +10,13 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Vibrator;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.NotificationCompat;
@@ -230,7 +234,7 @@ public class NotificationViewService extends Service {
 
                                 // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        //|| progression.length() == 1
+                                        || progression.length() == 1
                                         ) {
 
                                     if (botsThatMessaged.containsKey(bot.getId())) {
@@ -719,7 +723,16 @@ public class NotificationViewService extends Service {
         //display the dialog
         dialog.show();
 
+        // play alert tone
+        Ringtone tone = RingtoneManager.getRingtone(getApplicationContext(),
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+        tone.play();
 
+        // buzz
+        ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(500);
+
+
+        
 
 //        // setting layout for dialog
 //        LinearLayout dialogLayout = new LinearLayout(this);
