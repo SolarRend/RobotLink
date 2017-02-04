@@ -470,6 +470,12 @@ public class RobotLink extends AppCompatActivity {
                                                 button.setEnabled(false);
                                             }
 
+                                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
+                                                    + ": Sent \"" + responseValue  + "\" to "
+                                                    + robot.getName() + " in response to \""
+                                                    + progressionElement.getString("content")
+                                                    + "\"");
+
                                         } catch (JSONException ex) {
                                             StringWriter stringWriter = new StringWriter();
                                             PrintWriter printWriter = new PrintWriter(stringWriter, true);
@@ -533,7 +539,10 @@ public class RobotLink extends AppCompatActivity {
                                 button1.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+                                        + ": Sent \"" + responseElement1.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -596,7 +605,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+                                        + ": Sent \"" + responseElement1.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -640,7 +652,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
+                                        + ": Sent \"" + responseElement2.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -707,7 +722,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+                                        + ": Sent \"" + responseElement1.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -752,7 +770,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
+                                        + ": Sent \"" + responseElement2.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -798,7 +819,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement3.getString("value"));
+                                        + ": Sent \"" + responseElement3.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -871,7 +895,10 @@ public class RobotLink extends AppCompatActivity {
                                 button4.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement1.getString("value"));
+                                        + ": Sent \"" + responseElement1.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -917,7 +944,10 @@ public class RobotLink extends AppCompatActivity {
                                 button4.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement2.getString("value"));
+                                        + ": Sent \"" + responseElement2.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -964,7 +994,10 @@ public class RobotLink extends AppCompatActivity {
                                 button4.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement3.getString("value"));
+                                        + ": Sent \"" + responseElement3.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -1010,7 +1043,10 @@ public class RobotLink extends AppCompatActivity {
                                 button4.setEnabled(false);
 
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Requested " + robot.getName() + " to " + responseElement4.getString("value"));
+                                        + ": Sent \"" + responseElement4.getString("value")
+                                        + "\" to " + robot.getName() + " in response to \""
+                                        + progressionElement.getString("content")
+                                        + "\"");
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();

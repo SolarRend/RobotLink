@@ -565,6 +565,10 @@ public class ControllerService extends Service {
                             Log.i("onDescriptorWrite", "Successfully Written");
                             // blocking queue add for packet read characteristic
                             makeRobotBlock.add(1);
+                        } else {
+                            Log.e("onDescriptorWrite", "Write failed");
+                            currConnectedDevice.disconnect();
+                            makeRobotBlock.add(1);
                         }
                     }
 
@@ -626,7 +630,10 @@ public class ControllerService extends Service {
                                                       int status) {
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             Log.i("OnCharaWrite", "Successfully written: " + characteristic.getUuid());
-                            characteristicWriteBlock.offer(1);
+                            characteristicWriteBlock.add(1);
+                        } else {
+                            Log.i("OnCharaWrite", "Unsuccessful write: " + characteristic.getUuid());
+                            characteristicWriteBlock.add(1);
                         }
                     }
                 };
