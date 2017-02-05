@@ -234,7 +234,7 @@ public class NotificationViewService extends Service {
 
                                 // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        || progression.length() == 1
+                                        //|| progression.length() == 1
                                         ) {
 
                                     if (botsThatMessaged.containsKey(bot.getId())) {
@@ -732,7 +732,7 @@ public class NotificationViewService extends Service {
         ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(500);
 
 
-        
+
 
 //        // setting layout for dialog
 //        LinearLayout dialogLayout = new LinearLayout(this);

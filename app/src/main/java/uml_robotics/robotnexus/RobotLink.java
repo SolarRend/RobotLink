@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,6 +26,7 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -433,19 +435,59 @@ public class RobotLink extends AppCompatActivity {
                                 // get the spinner
                                 final Spinner dropdown = (Spinner)responseText.findViewById(R.id.dialog_dropdown);
                                 // list for the spinner
-                                final ArrayAdapter<String> dropResponses = new ArrayAdapter<>(RobotLink.this,
-                                        R.layout.text_resource);
+                                // source before modifications:
+                                // http://coding-thoughts.blogspot.com/2013/11/help-my-spinner-is-too-wide.html
+                                final ArrayAdapter<String> dropResponses = new ArrayAdapter<String>(RobotLink.this,
+                                        R.layout.text_resource) {
+
+                                    @Override
+                                    public View getView(final int position, final View convertView,
+                                                        final ViewGroup parent) {
+                                        int selectedItemPosition = position;
+                                        if (parent instanceof AdapterView) {
+                                            selectedItemPosition = ((AdapterView) parent)
+                                                    .getSelectedItemPosition();
+                                        }
+                                        return makeLayout(selectedItemPosition, convertView, parent,
+                                                R.layout.text_resource);
+                                    }
+
+                                    @Override
+                                    public View getDropDownView(final int position, final View convertView,
+                                                                final ViewGroup parent) {
+                                        return makeLayout(position, convertView, parent,
+                                                android.R.layout.simple_spinner_dropdown_item);
+                                    }
+
+                                    private View makeLayout(final int position, final View convertView,
+                                                            final ViewGroup parent, final int layout) {
+                                        TextView tv;
+                                        if (convertView != null) {
+                                            tv = (TextView) convertView;
+                                        } else {
+                                            tv = (TextView) LayoutInflater.from(RobotLink.this).inflate(layout,
+                                                    parent, false);
+                                        }
+
+                                        tv.setText(this.getItem(position));
+
+                                        return tv;
+                                    }
+
+                                };
                                 for (int k = 0; k < numOfResponses; k++) {
                                     dropResponses.add(responses.getJSONObject(k).getString("value"));
                                 }
 
-                                dropResponses.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+
+                                //dropResponses.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                                 dropdown.setAdapter(dropResponses);
                                 dropdown.setSelection(j, false);
                                 dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                                     @Override
                                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                                         try {
+
                                             String responseValue = dropResponses.getItem(position);
                                             JSONArray responses = progressionElement.getJSONArray("responses");
                                             for (int i = 0; i < responses.length(); i++) {
