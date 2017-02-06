@@ -56,7 +56,7 @@ public class NotificationViewService extends Service {
     private Dialog dialog = null; // emergency dialog for popups
     private Notification.Builder notif; // builder object for notifications
     // used for making sure the same dialog is not displayed twice
-    private HashMap<String, String> botsThatMessaged;
+    //private HashMap<String, String> botsThatMessaged;
 
     public NotificationViewService() {}
 
@@ -66,7 +66,7 @@ public class NotificationViewService extends Service {
 
         notifManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         notif = new Notification.Builder(NotificationViewService.this);
-        botsThatMessaged = new HashMap<>();
+        //botsThatMessaged = new HashMap<>();
         model = ControllerService.getModel();
 
         // starting model update
@@ -237,10 +237,10 @@ public class NotificationViewService extends Service {
                                         //|| progression.length() == 1
                                         ) {
 
-                                    if (botsThatMessaged.containsKey(bot.getId())) {
+                                    //if (botsThatMessaged.containsKey(bot.getId())) {
                                         // check to see if we already messaged user
-                                        if (!(botsThatMessaged.get(bot.getId())
-                                                .equals(lastProgressionElement.getString("msgid")))) {
+                                        //if (!(botsThatMessaged.get(bot.getId())
+                                        //        .equals(lastProgressionElement.getString("msgid")))) {
                                             // if here then make this progression element an emergency dialog
                                             new Handler(Looper.getMainLooper()).post(new Runnable() {
                                                 @Override
@@ -251,8 +251,9 @@ public class NotificationViewService extends Service {
                                                 }
                                             });
                                             break; // just show one emergency dialog at a time
-                                        }
-                                    } else {
+                                    //   }
+                                   //} else {
+                                    /*
                                         // if here then make this progression element an emergency dialog
                                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                                             @Override
@@ -263,7 +264,7 @@ public class NotificationViewService extends Service {
                                             }
                                         });
                                         break; // just show one emergency dialog at a time
-                                    }
+                                    } */
                                 }
                             }
 
@@ -704,7 +705,7 @@ public class NotificationViewService extends Service {
             }
 
             //add this popup so it won't get displayed again
-            botsThatMessaged.put(bot.getId(), progressionElement.getString("msgid"));
+            //botsThatMessaged.put(bot.getId(), progressionElement.getString("msgid"));
 
         } catch (JSONException ex) {
             StringWriter stringWriter = new StringWriter();
