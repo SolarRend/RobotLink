@@ -403,6 +403,7 @@ public class NotificationViewService extends Service {
                         }
                     });
 
+                    /*
                     ((Button)dialog.findViewById(R.id.alert_two_later)).setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -413,7 +414,7 @@ public class NotificationViewService extends Service {
                                     + ": Selected later on " + bot.getName()
                                     + " from popup");
                         }
-                    });
+                    });*/
 
                     break;
                 // 3 buttons
@@ -531,7 +532,7 @@ public class NotificationViewService extends Service {
                                     + " from popup");
                         }
                     });
-
+                    /*
                     ((Button)dialog.findViewById(R.id.alert_three_later)).setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -543,7 +544,8 @@ public class NotificationViewService extends Service {
                                     + " from popup");
 
                         }
-                    });
+                    });*/
+
                     break;
                 // 4 buttons
                 case 4:
@@ -688,6 +690,7 @@ public class NotificationViewService extends Service {
                         }
                     });
 
+                    /*
                     ((Button)dialog.findViewById(R.id.alert_four_later)).setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -700,6 +703,7 @@ public class NotificationViewService extends Service {
 
                         }
                     });
+                    */
 
                     break;
             }
