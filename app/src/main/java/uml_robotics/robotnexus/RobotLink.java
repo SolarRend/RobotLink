@@ -1,6 +1,7 @@
 package uml_robotics.robotnexus;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.media.Image;
 import android.os.Bundle;
@@ -1115,12 +1116,12 @@ public class RobotLink extends AppCompatActivity {
 
                 // setting progression dialog scroll view to end
                 final ScrollView scrollView = ((ScrollView) findViewById(R.id.scroll_view));
-                scrollView.post(new Runnable() {
+                scrollView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         scrollView.fullScroll(View.FOCUS_DOWN);
                     }
-                });
+                }, 75);
 
 
                 // disable waiting dialog if it showing
@@ -1232,5 +1233,12 @@ public class RobotLink extends AppCompatActivity {
 //            }
 //
 //        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        startActivity(intent);
+        this.finish();
     }
 }

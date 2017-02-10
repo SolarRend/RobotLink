@@ -106,9 +106,9 @@ public class Robot {
         if (!(robotSelf.getId().equals(robotPrime.getId()))) {
             return false;
         }
-        if (robotSelf.getProximity() != robotPrime.getProximity()) {
-            return false;
-        }
+        //if (robotSelf.getProximity() != robotPrime.getProximity()) {
+        //    return false;
+        //}
         if (!(robotSelf.getCurrState().equals(robotPrime.getCurrState()))) {
             return false;
         }
