@@ -34,6 +34,7 @@ public class RobotSelector extends AppCompatActivity {
         robotSelectorHandler = new Handler(); // getting this view's thread
 
         //setting up robot list ui
+        /*
         Integer images[]  = new Integer[model.size()];
         Robot robots[] = new Robot[model.size()];
         int i = 0;
@@ -42,6 +43,33 @@ public class RobotSelector extends AppCompatActivity {
             images[i] = bot.getImage();
             i++;
         }
+        displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images);*/
+
+        // checking how many robots needs to be displayed (not ignored)
+        int robotListSize = 0;
+        for (Robot bot : model) {
+            if (bot.isVisible()) {
+                robotListSize++;
+            }
+        }
+
+        //setting up robot list ui
+        Integer images[]  = new Integer[robotListSize];
+        Robot robots[] = new Robot[robotListSize];
+        int i = 0;
+        for (Robot bot : model) {
+            if (!bot.isVisible()) {
+                continue;
+            }
+            robots[i] = bot;
+            images[i] = bot.getImage();
+            i++;
+            Log.i("RobotSelector.onCreate", "ID: " + bot.getId());
+            Log.i("RobotSelector.onCreate", "Name: " + bot.getName());
+            Log.i("RobotSelector.onCreate", "ImgID: " + bot.getImage());
+        }
+        Log.i("RobotSelector.onCreate", "Res ImgIDs: " + Arrays.toString(images));
+        Log.i("RobotSelector.onCreate", "Robot Names: " + Arrays.toString(robots));
         displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images);
 
         ListView listView = (ListView) findViewById(R.id.robot_list);
@@ -104,6 +132,13 @@ public class RobotSelector extends AppCompatActivity {
             while (keepAlive) {
 
                 modelPrime = ControllerService.getModel();
+                /*
+                for (Robot robot : modelPrime) {
+                    Log.i("RobotSelector.Update", "Prime-" + robot.getId() + ": " + robot.isVisible());
+                }
+                for (Robot robot : model) {
+                    Log.i("RobotSelector.Update", "Self-" + robot.getId() + ": " + robot.isVisible());
+                }*/
 
                 // if our models don't match up
                 if (!(modelPrime.containsAll(model) && model.containsAll(modelPrime))) {

@@ -1059,9 +1059,11 @@ public class ControllerService extends Service {
                                 // find robot in model
                                 for (Robot bot : model) {
                                     if (bot.getId().equals(device.getAddress())) {
-                                        bot.setProximity(rssi);
-                                        bot.setVisible(isCurrRobotVisible);
-                                        model.set(model.indexOf(bot), (Robot)bot.clone());
+                                        int index = model.indexOf(bot);
+                                        Robot robotPrime = (Robot)bot.clone();
+                                        robotPrime.setProximity(rssi);
+                                        robotPrime.setVisible(isCurrRobotVisible);
+                                        model.set(index, robotPrime);
                                         // set the model now
                                         setModel(model);
                                         break;
@@ -1788,9 +1790,11 @@ public class ControllerService extends Service {
             // check if current robot is already in our model
             for (Robot bot : model) {
                 if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
-                    bot.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
-                    bot.setVisible(isCurrRobotVisible);
-                    model.set(model.indexOf(bot), (Robot)bot.clone());
+                    int index = model.indexOf(bot);
+                    Robot robotPrime = (Robot)bot.clone();
+                    robotPrime.setProximity(robotsAsBTDevices.get(currConnectedDevice.getDevice()));
+                    robotPrime.setVisible(isCurrRobotVisible);
+                    model.set(index, robotPrime);
                     alreadyContained = true;
                     break;
                 }
@@ -2359,8 +2363,11 @@ public class ControllerService extends Service {
      * @return a copy of the current model
      */
     public static ArrayList<Robot> getModel() {
+        ArrayList<Robot> copyOfTheModel = new ArrayList<>();
         theModelLock.lock();
-        ArrayList<Robot> copyOfTheModel = new ArrayList<Robot>(theModel);
+        for (Robot bot : theModel) {
+            copyOfTheModel.add((Robot)bot.clone());
+        }
         theModelLock.unlock();
         return copyOfTheModel;
     }
@@ -2371,7 +2378,10 @@ public class ControllerService extends Service {
      */
     private void setModel(ArrayList<Robot> newModel) {
         theModelLock.lock();
-        theModel = new ArrayList<Robot>(newModel);
+        theModel.clear();
+        for (Robot bot : newModel) {
+            theModel.add((Robot)bot.clone());
+        }
         theModelLock.unlock();
     }
 }

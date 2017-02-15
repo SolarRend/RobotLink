@@ -1238,6 +1238,12 @@ public class RobotLink extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        // getting id of robot given to us
+        String robotID = intent.getStringExtra("EXTRA_ROBOT_ID");
+        if (robotID.equals(robot.getId())) {
+            //if this is the same robot then do not recreate activity
+            return;
+        }
         startActivity(intent);
         this.finish();
     }

@@ -1,6 +1,7 @@
 package uml_robotics.robotnexus;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 import org.json.JSONArray;
 
@@ -103,7 +104,14 @@ public class Robot {
         Robot robotPrime = (Robot)robot;
         Robot robotSelf = this;
 
+
+        //Log.i("Robot.equals", robotPrime.isVisible() + ": prime");
+        //Log.i("Robot.equals", robotSelf.isVisible() + ": self");
+
         if (!(robotSelf.getId().equals(robotPrime.getId()))) {
+            return false;
+        }
+        if (robotSelf.isVisible() != robotPrime.isVisible()) {
             return false;
         }
         //if (robotSelf.getProximity() != robotPrime.getProximity()) {
@@ -115,6 +123,7 @@ public class Robot {
         if (!(robotSelf.getProgression().equals(robotPrime.getProgression()))) {
             return false;
         }
+
 
         return true;
     }
