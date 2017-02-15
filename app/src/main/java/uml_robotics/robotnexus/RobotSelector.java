@@ -56,6 +56,7 @@ public class RobotSelector extends AppCompatActivity {
         //setting up robot list ui
         Integer images[]  = new Integer[robotListSize];
         Robot robots[] = new Robot[robotListSize];
+        Integer icons[] = new Integer[robotListSize];
         int i = 0;
         for (Robot bot : model) {
             if (!bot.isVisible()) {
@@ -63,6 +64,23 @@ public class RobotSelector extends AppCompatActivity {
             }
             robots[i] = bot;
             images[i] = bot.getImage();
+            switch (bot.getCurrState()) {
+                case "ok":
+                    icons[i] = R.drawable.svg_ok;
+                    break;
+                case "safe":
+                    icons[i] = R.drawable.svg_safe;
+                    break;
+                case "dangerous":
+                    icons[i] = R.drawable.svg_dangerous;
+                    break;
+                case "help":
+                    icons[i] = R.drawable.svg_help;
+                    break;
+                case "off":
+                    icons[i] = R.drawable.svg_off;
+                    break;
+            }
             i++;
             Log.i("RobotSelector.onCreate", "ID: " + bot.getId());
             Log.i("RobotSelector.onCreate", "Name: " + bot.getName());
@@ -70,7 +88,7 @@ public class RobotSelector extends AppCompatActivity {
         }
         Log.i("RobotSelector.onCreate", "Res ImgIDs: " + Arrays.toString(images));
         Log.i("RobotSelector.onCreate", "Robot Names: " + Arrays.toString(robots));
-        displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images);
+        displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images, icons);
 
         ListView listView = (ListView) findViewById(R.id.robot_list);
         listView.setAdapter(displayAdapter);
@@ -157,6 +175,7 @@ public class RobotSelector extends AppCompatActivity {
                     //updating robot list ui
                     Integer images[]  = new Integer[robotListSize];
                     Robot robots[] = new Robot[robotListSize];
+                    Integer icons[] = new Integer[robotListSize];
                     int i = 0;
                     for (Robot bot : model) {
                         if (!bot.isVisible()) {
@@ -164,6 +183,23 @@ public class RobotSelector extends AppCompatActivity {
                         }
                         robots[i] = bot;
                         images[i] = bot.getImage();
+                        switch (bot.getCurrState()) {
+                            case "ok":
+                                icons[i] = R.drawable.svg_ok;
+                                break;
+                            case "safe":
+                                icons[i] = R.drawable.svg_safe;
+                                break;
+                            case "dangerous":
+                                icons[i] = R.drawable.svg_dangerous;
+                                break;
+                            case "help":
+                                icons[i] = R.drawable.svg_help;
+                                break;
+                            case "off":
+                                icons[i] = R.drawable.svg_off;
+                                break;
+                        }
                         i++;
                         Log.i("RobotSelector.Update", "ID: " + bot.getId());
                         Log.i("RobotSelector.Update", "Name: " + bot.getName());
@@ -171,7 +207,7 @@ public class RobotSelector extends AppCompatActivity {
                     }
                     Log.i("RobotSelector.Update", "Res ImgIDs: " + Arrays.toString(images));
                     Log.i("RobotSelector.Update", "Robot Names: " + Arrays.toString(robots));
-                    displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images);
+                    displayAdapter = new RobotNavListAdapter(RobotSelector.this, robots, images, icons);
 
                     robotSelectorHandler.post(new Runnable() {
                         @Override
