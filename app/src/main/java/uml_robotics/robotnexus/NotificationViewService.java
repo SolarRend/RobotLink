@@ -234,7 +234,7 @@ public class NotificationViewService extends Service {
 
                                 // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        || progression.length() == 1
+                                        //|| progression.length() == 1
                                         ) {
 
                                     //if (botsThatMessaged.containsKey(bot.getId())) {
