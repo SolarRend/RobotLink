@@ -732,6 +732,8 @@ public class ControllerService extends Service {
                                             imgOfBot = R.drawable.svg_dirt_dog;
                                         } else if (makeOfRobot.equals("roomba500")) {
                                             imgOfBot = R.drawable.svg_roomba500;
+                                        } else if (makeOfRobot.equals("eva")) {
+                                            imgOfBot = R.drawable.svg_eva;
                                         } else {
                                             // it's just gotta be junior
                                             imgOfBot = R.drawable.junior;
@@ -2324,7 +2326,7 @@ public class ControllerService extends Service {
      */
     public static void Log(String logText) {
 
-        File file = new File("sdcard/" + dateAndTimeOfAppStart + "_robotnexus_log.txt");
+        File file = new File("sdcard/Download/data/" + dateAndTimeOfAppStart + "_robotnexus_log.txt");
 
         if (!file.exists()) {
             try {
