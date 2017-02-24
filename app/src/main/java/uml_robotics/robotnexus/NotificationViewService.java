@@ -223,6 +223,11 @@ public class NotificationViewService extends Service {
                     // ***displaying emergency dialog (pull notifications)***
                     for (final Robot bot : model) {
 
+                        // if this robot is not visible don't display a popup even if it has one
+                        if (!bot.isVisible()) {
+                            continue;
+                        }
+
                         try {
 
                             JSONArray progression = bot.getProgression();
