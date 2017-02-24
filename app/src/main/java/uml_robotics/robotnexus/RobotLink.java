@@ -123,6 +123,23 @@ public class RobotLink extends AppCompatActivity {
 
         displayProgression(robot.getProgression());
 
+        // check to see if this activity was started by popup response
+        if (getIntent().hasExtra("EXTRA_CHECKSUM")) {
+            //now compare checksums to see if robot updated before robot link was created
+            if (robot.getStatusHashValue() == getIntent().getLongExtra("EXTRA_CHECKSUM", 0)) {
+                // if here then robot has not updated yet and display a waitDialog
+                waitDialog.setTitle("Sending message");
+                waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                waitDialog.setCancelable(false);
+                waitDialog.show();
+
+                //disable buttons
+                for (Button button : activeButtons) {
+                    button.setEnabled(false);
+                }
+            }
+        }
+
         /**
          * MOCK-UP progression dialog
          */
@@ -1241,7 +1258,27 @@ public class RobotLink extends AppCompatActivity {
         // getting id of robot given to us
         String robotID = intent.getStringExtra("EXTRA_ROBOT_ID");
         if (robotID.equals(robot.getId())) {
-            //if this is the same robot then do not recreate activity
+
+            // check to see if this activity was started by popup response
+            if (intent.hasExtra("EXTRA_CHECKSUM")) {
+
+                //now compare checksums to see if robot updated before robot link was created
+                if (robot.getStatusHashValue() == intent.getLongExtra("EXTRA_CHECKSUM", 0)) {
+
+                    // if here then robot has not updated yet and display a waitDialog
+                    waitDialog.setTitle("Sending message");
+                    waitDialog.setMessage("Waiting for " + robot.getName() + "..." );
+                    waitDialog.setCancelable(false);
+                    waitDialog.show();
+
+                    //disable buttons
+                    for (Button button : activeButtons) {
+                        button.setEnabled(false);
+                    }
+                }
+            }
+
+            // this is the same robot -> do not recreate activity
             return;
         }
         startActivity(intent);

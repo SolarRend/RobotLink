@@ -239,7 +239,7 @@ public class NotificationViewService extends Service {
 
                                 // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        //|| progression.length() == 1
+                                        || progression.length() == 1
                                         ) {
 
                                     //if (botsThatMessaged.containsKey(bot.getId())) {
@@ -337,6 +337,14 @@ public class NotificationViewService extends Service {
                                 //end this dialog
                                 dialog.dismiss();
 
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Requested " + bot.getName() + " from popup to "
@@ -368,6 +376,14 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
@@ -459,6 +475,14 @@ public class NotificationViewService extends Service {
                                 //end this dialog
                                 dialog.dismiss();
 
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Requested " + bot.getName() + " from popup to "
@@ -488,6 +512,14 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
@@ -519,6 +551,14 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
@@ -612,6 +652,14 @@ public class NotificationViewService extends Service {
                                 //end this dialog
                                 dialog.dismiss();
 
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Requested " + bot.getName() + " from popup to "
@@ -641,6 +689,14 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
@@ -673,6 +729,14 @@ public class NotificationViewService extends Service {
                                 //end this dialog
                                 dialog.dismiss();
 
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Requested " + bot.getName() + " from popup to "
@@ -703,6 +767,14 @@ public class NotificationViewService extends Service {
 
                                 //end this dialog
                                 dialog.dismiss();
+
+                                // start robot link activity with sending message dialog
+                                NotificationViewService.this.startActivity(new Intent(NotificationViewService.this,
+                                        RobotLink.class)
+                                        .putExtra("EXTRA_ROBOT_ID", bot.getId())
+                                        //this means this activity was started from popup
+                                        .putExtra("EXTRA_CHECKSUM", bot.getStatusHashValue())
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
                                 /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
