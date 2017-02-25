@@ -40,6 +40,7 @@ import org.json.JSONObject;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -182,10 +183,10 @@ public class NotificationViewService extends Service {
 
 
                         // setting clickable action of notification
-
                         Intent intent = new Intent(NotificationViewService.this, RobotLink.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         intent.putExtra("EXTRA_ROBOT_ID", bot.getId());
+                        intent.putExtra("EXTRA_NOTIF_TAPPED", true);
                         notif.setContentIntent(PendingIntent.getActivity(NotificationViewService.this,
                                 id, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT));
@@ -239,7 +240,7 @@ public class NotificationViewService extends Service {
 
                                 // check its popup field
                                 if (lastProgressionElement.getBoolean("popup")
-                                        || progression.length() == 1
+                                        //|| progression.length() == 1
                                         ) {
 
                                     //if (botsThatMessaged.containsKey(bot.getId())) {
@@ -351,11 +352,17 @@ public class NotificationViewService extends Service {
                                         + responses.getJSONObject(0).getString("value"));
                                         */
 
+                                /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Sent \"" + responses.getJSONObject(0).getString("value")
                                         + "\" to " + bot.getName() + " in response to a popup saying \""
                                         + progressionElement.getString("content")
                                         + "\"");
+                                        */
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(0).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -390,11 +397,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(1).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(1).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(1).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -433,9 +439,9 @@ public class NotificationViewService extends Service {
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
 
-                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                    + ": Selected more info on " + bot.getName()
-                                    + " from popup");
+                            ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                    .format(new Date())
+                                    + ",SELECTED,more_info");
                         }
                     });
 
@@ -488,11 +494,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(0).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(0).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(0).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -526,11 +531,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(1).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(1).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(1).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -565,11 +569,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(2).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(2).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(2).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -608,9 +611,9 @@ public class NotificationViewService extends Service {
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
 
-                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                    + ": Selected more info on " + bot.getName()
-                                    + " from popup");
+                            ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                    .format(new Date())
+                                    + ",SELECTED,more_info");
                         }
                     });
                     /*
@@ -665,11 +668,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(0).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(0).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(0).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -703,11 +705,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(1).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(1).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(1).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -742,11 +743,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(2).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(2).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(2).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -781,11 +781,10 @@ public class NotificationViewService extends Service {
                                         + ": Requested " + bot.getName() + " from popup to "
                                         + responses.getJSONObject(3).getString("value"));*/
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responses.getJSONObject(3).getString("value")
-                                        + "\" to " + bot.getName() + " in response to a popup saying \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responses.getJSONObject(3).getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -824,9 +823,9 @@ public class NotificationViewService extends Service {
                                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             dialog.dismiss();
 
-                            ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                    + ": Selected more info on " + bot.getName()
-                                    + " from popup");
+                            ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                    .format(new Date())
+                                    + ",SELECTED,more_info");
 
                         }
                     });
@@ -868,6 +867,11 @@ public class NotificationViewService extends Service {
 
         //display the dialog
         dialog.show();
+
+        ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .format(new Date())
+                + ",POPUP,"
+                + bot.getName());
 
         // play alert tone
         Ringtone tone = RingtoneManager.getRingtone(getApplicationContext(),

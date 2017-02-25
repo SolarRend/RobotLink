@@ -37,6 +37,7 @@ import org.json.JSONObject;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -138,6 +139,15 @@ public class RobotLink extends AppCompatActivity {
                     button.setEnabled(false);
                 }
             }
+        }
+
+        // check to see if user tapped notification to get here
+        if (getIntent().hasExtra("EXTRA_NOTIF_TAPPED")) {
+            // if here then log it
+            ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                    .format(new Date())
+                    + ",NOTIFICATIONTAPPED,"
+                    + robot.getName());
         }
 
         /**
@@ -286,8 +296,14 @@ public class RobotLink extends AppCompatActivity {
         modelUpdate = new ModelUpdate();
         modelUpdate.start();
 
+        /*
         ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                + ": Looking at " + robot.getName());
+                + ": Looking at " + robot.getName());*/
+
+        ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .format(new Date())
+                + ",OPEN,"
+                + robot.getName());
     }
 
     @Override
@@ -305,8 +321,10 @@ public class RobotLink extends AppCompatActivity {
         super.onStop();
         modelUpdate.close();
         waitDialog.dismiss();
-        ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                + ": No longer looking at " + robot.getName());
+        ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .format(new Date())
+                + ",CLOSE,"
+                + robot.getName());
     }
 
     @Override
@@ -530,11 +548,18 @@ public class RobotLink extends AppCompatActivity {
                                                 button.setEnabled(false);
                                             }
 
+                                            /*
                                             ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                                     + ": Sent \"" + responseValue  + "\" to "
                                                     + robot.getName() + " in response to \""
                                                     + progressionElement.getString("content")
                                                     + "\"");
+                                            */
+
+                                            ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                    .format(new Date())
+                                                    + ",SELECTED,"
+                                                    + responseValue);
 
                                         } catch (JSONException ex) {
                                             StringWriter stringWriter = new StringWriter();
@@ -598,11 +623,18 @@ public class RobotLink extends AppCompatActivity {
                                 //disabling button
                                 button1.setEnabled(false);
 
+                                /*
                                 ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
                                         + ": Sent \"" + responseElement1.getString("value")
                                         + "\" to " + robot.getName() + " in response to \""
                                         + progressionElement.getString("content")
                                         + "\"");
+                                */
+
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement1.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -664,11 +696,10 @@ public class RobotLink extends AppCompatActivity {
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement1.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement1.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -711,11 +742,10 @@ public class RobotLink extends AppCompatActivity {
                                 button1.setEnabled(false);
                                 button2.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement2.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -781,11 +811,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement1.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement1.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -829,11 +858,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement2.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -878,11 +906,10 @@ public class RobotLink extends AppCompatActivity {
                                 button2.setEnabled(false);
                                 button3.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement3.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement3.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -954,11 +981,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement1.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement1.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -1003,11 +1029,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement2.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement2.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -1053,11 +1078,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement3.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement3.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -1102,11 +1126,10 @@ public class RobotLink extends AppCompatActivity {
                                 button3.setEnabled(false);
                                 button4.setEnabled(false);
 
-                                ControllerService.Log(DateFormat.getTimeInstance().format(new Date())
-                                        + ": Sent \"" + responseElement4.getString("value")
-                                        + "\" to " + robot.getName() + " in response to \""
-                                        + progressionElement.getString("content")
-                                        + "\"");
+                                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                        .format(new Date())
+                                        + ",SELECTED,"
+                                        + responseElement4.getString("value"));
 
                             } catch (JSONException ex) {
                                 StringWriter stringWriter = new StringWriter();
@@ -1276,6 +1299,15 @@ public class RobotLink extends AppCompatActivity {
                         button.setEnabled(false);
                     }
                 }
+            }
+
+            // check to see if user tapped notification to get here
+            if (intent.hasExtra("EXTRA_NOTIF_TAPPED")) {
+                // if here then log it
+                ControllerService.Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                        .format(new Date())
+                        + ",NOTIFICATIONTAPPED,"
+                        + robot.getName());
             }
 
             // this is the same robot -> do not recreate activity

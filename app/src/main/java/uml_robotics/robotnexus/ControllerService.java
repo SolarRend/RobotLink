@@ -44,6 +44,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -161,7 +162,14 @@ public class ControllerService extends Service {
         controllerService = this;
 
         // getting date and time
-        dateAndTimeOfAppStart = DateFormat.getDateTimeInstance().format(new Date());
+        //SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        //dateAndTimeOfAppStart = DateFormat.getDateTimeInstance().format(new Date());
+        //dateAndTimeOfAppStart = format.format(new Date());
+        dateAndTimeOfAppStart = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date());
+
+        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .format(new Date())
+                + ",INITIALIZED,robotlinkapp");
 
         // sleeping for one second to give looper a chance to make handler
         try {
@@ -742,6 +750,7 @@ public class ControllerService extends Service {
                                         modelLock.lock();
                                         for (Robot bot : model) {
                                             if (bot.getId().equals(currConnectedDevice.getDevice().getAddress())) {
+                                                String originalName = bot.getName();
                                                 // set this robot's name
                                                 bot.setName(jsonMessage.getString("name"));
                                                 // set it's state
@@ -756,6 +765,19 @@ public class ControllerService extends Service {
                                                 }
                                                 // set checksum value
                                                 bot.setStatusHashValue(statusHashValue);
+                                                if (originalName == null) {
+                                                    if (isCurrRobotVisible) {
+                                                        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                                .format(new Date())
+                                                                + ",SETVISIBLE,"
+                                                                + bot.getName());
+                                                    } else {
+                                                        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                                .format(new Date())
+                                                                + ",SETHIDDEN,"
+                                                                + bot.getName());
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -764,6 +786,11 @@ public class ControllerService extends Service {
 
                                         //robotsAsBTDevices.clear();
                                         currConnectedDevice.disconnect();
+
+                                        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                .format(new Date())
+                                                + ",UPDATED,"
+                                                + jsonMessage.getString("name"));
                                     } catch (JSONException ex) {
                                         currConnectedDevice.disconnect();
                                         StringWriter stringWriter = new StringWriter();
@@ -894,7 +921,11 @@ public class ControllerService extends Service {
         //btGattCallback = null;
         //supportedServices = null;
         //supportedCharas = null;
+        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .format(new Date())
+                + ",SHUTDOWN,robotlinkapp");
         Log.i("Controller.onDestroy()", "Destroyed");
+
     }
 
     /**
@@ -1068,6 +1099,17 @@ public class ControllerService extends Service {
                                         model.set(index, robotPrime);
                                         // set the model now
                                         setModel(model);
+                                        if (bot.isVisible() && !isCurrRobotVisible) {
+                                            Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                    .format(new Date())
+                                                    + ",SETHIDDEN,"
+                                                    + bot.getName());
+                                        } else if (!bot.isVisible() && isCurrRobotVisible) {
+                                            Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                                    .format(new Date())
+                                                    + ",SETVISIBLE,"
+                                                    + bot.getName());
+                                        }
                                         break;
                                     }
                                 }
@@ -1798,6 +1840,17 @@ public class ControllerService extends Service {
                     robotPrime.setVisible(isCurrRobotVisible);
                     model.set(index, robotPrime);
                     alreadyContained = true;
+                    if (bot.isVisible() && !isCurrRobotVisible) {
+                        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                .format(new Date())
+                                + ",SETHIDDEN,"
+                                + bot.getName());
+                    } else if (!bot.isVisible() && isCurrRobotVisible) {
+                        Log(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                                .format(new Date())
+                                + ",SETVISIBLE,"
+                                + bot.getName());
+                    }
                     break;
                 }
             }
@@ -2326,7 +2379,7 @@ public class ControllerService extends Service {
      */
     public static void Log(String logText) {
 
-        File file = new File("sdcard/Download/data/" + dateAndTimeOfAppStart + "_robotnexus_log.txt");
+        File file = new File("sdcard/Download/data/" + dateAndTimeOfAppStart + "_robotnexus_log.csv");
 
         if (!file.exists()) {
             try {
