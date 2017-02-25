@@ -10,6 +10,8 @@ import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
 
 import static java.lang.Thread.sleep;
 
@@ -38,6 +40,7 @@ import static java.lang.Thread.sleep;
 public class MainActivity extends Activity {
     private Intent controllerIntent;
     private boolean startedRobotSelector = false;
+    private int shutdownClicks = 0; //5 clicks allows for app to be destroyed on exit
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,8 +90,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        this.stopService(controllerIntent);
-        Log.i("MAIN.onDestroy()", "Stopped Controller");
+        if (shutdownClicks >= 5) {
+            this.stopService(ControllerService.controllerServiceIntent);
+            Log.i("MAIN.onDestroy()", "Stopped Controller");
+        }
 
     }
 
@@ -125,6 +130,15 @@ public class MainActivity extends Activity {
                 this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
                 Log.i("MAIN.onCreate()", "Transitioning to RobotSelector activity");
             }
+        }
+    }
+
+    // hidden button that needs to be clicked 10 times to allow for successful shutdown of app
+    public void shutdownButtonClick(View v) {
+        Log.i("MAIN.shutdownClick", "CLICK");
+        shutdownClicks++;
+        if (shutdownClicks == 5) {
+            Toast.makeText(MainActivity.this, "Exit app to shutdown", Toast.LENGTH_LONG).show();
         }
     }
 }

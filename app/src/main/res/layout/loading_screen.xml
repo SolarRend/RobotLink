@@ -17,4 +17,17 @@
         android:shadowColor="#d6d6d6"
         android:id="@+id/loading_text"
         android:layout_width="315dp" />
+
+
+
+    <Button
+        android:text=""
+        android:layout_width="315dp"
+        android:layout_height="120dp"
+        android:id="@+id/shutdown_button"
+        android:background="@android:color/transparent"
+        android:onClick="shutdownButtonClick"
+        android:visibility="visible"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="150dp" />
 </RelativeLayout>

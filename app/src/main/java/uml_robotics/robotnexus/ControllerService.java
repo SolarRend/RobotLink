@@ -65,6 +65,7 @@ import static java.lang.Thread.sleep;
 public class ControllerService extends Service {
     // accessed by StartForegroundService to get this service's instance
     protected static ControllerService controllerService;
+    protected static Intent controllerServiceIntent; //accessed by main activity to shutdown app
     // action name to extract the jpeg from strJSON
     private final String DESERIALIZE_JPEG = "uml_robotics.controller.deserialize_jpeg";
     private final String UPDATE_COMPLETE = "uml_robotics.controller.update_complete";
@@ -823,6 +824,7 @@ public class ControllerService extends Service {
             @Override
             public void run() {
                 onStartCommandSeparateThread();
+                controllerServiceIntent = intent;
             }
         });
 
@@ -2384,6 +2386,11 @@ public class ControllerService extends Service {
         if (!file.exists()) {
             try {
                 file.createNewFile();
+                BufferedWriter writer = new BufferedWriter(new FileWriter(file, true));
+                writer.append("Time,Action,Target");
+                writer.newLine();
+                writer.flush();
+                writer.close();
             } catch (IOException ex) {
                 StringWriter stringWriter = new StringWriter();
                 PrintWriter printWriter = new PrintWriter(stringWriter, true);
