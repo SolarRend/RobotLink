@@ -49,4 +49,13 @@
         android:layout_toEndOf="@+id/push_notif_img"
         android:layout_marginStart="8dp"/>
 
+    <ImageView
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:src="@drawable/svg_dangerous"
+        android:id="@+id/push_notif_status"
+        android:layout_alignBottom="@+id/push_notif_img"
+        android:layout_toStartOf="@+id/textView4"
+        android:layout_marginStart="30dp"/>
+
 </RelativeLayout>

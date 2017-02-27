@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
                     MainActivity.this.startActivity(new Intent(MainActivity.this, RobotSelector.class));
                     Log.i("MAIN.onResume()", "Transitioning to RobotSelector activity");
                 }
-            }, 3500);
+            }, 3000);
         }
     }
 

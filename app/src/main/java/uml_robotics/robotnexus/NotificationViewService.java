@@ -112,6 +112,12 @@ public class NotificationViewService extends Service {
                 // if our models don't match up
                 if (!(modelPrime.containsAll(model) && model.containsAll(modelPrime))) {
 
+                    // used to notify only if checksum is different
+                    ArrayList<Robot> oldModel = new ArrayList<>();
+                    for (Robot robot: model) {
+                        oldModel.add((Robot)robot.clone());
+                    }
+
                     model = ControllerService.getModel();
                     Log.i("NotifView.Update", "Model changed");
 
@@ -134,8 +140,32 @@ public class NotificationViewService extends Service {
                         if (!bot.isVisible()) {
                             notifManager.cancel(id);
                             id++;
+                            Log.i("NotifView.Update", "Canceling: " + bot.getId());
                             continue;
                         }
+
+                        // check to see if robot changed at all
+                        boolean hasUpdate = true;
+                        for (Robot robot: oldModel) {
+                            if (robot.getId().equals(bot.getId())) {
+                                if (robot.getStatusHashValue() == bot.getStatusHashValue()) {
+                                    // this robot did not update
+                                    hasUpdate = false;
+                                    Log.i("NotifView.Update", "Old model: " + robot.getId());
+                                    Log.i("NotifView.Update", "New model: " + bot.getId());
+                                    Log.i("NotifView.Update", "Old model: " + robot.getStatusHashValue());
+                                    Log.i("NotifView.Update", "New model: " + bot.getStatusHashValue());
+                                    break;
+                                }
+                            }
+                        }
+                        if (!hasUpdate) {
+                            id++;
+                            continue;
+                        }
+
+                        Log.i("NotifView.Update", "Notifying: " + bot.getId());
+
                         // building notification
                         // get our custom notification layout
                         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.custom_push_notification);
@@ -158,10 +188,29 @@ public class NotificationViewService extends Service {
                             notif.setSmallIcon(bot.getImage());
                         }
 
+                        // setting of status of robot
+                        switch (bot.getCurrState()) {
+                            case "ok":
+                                remoteViews.setImageViewResource(R.id.push_notif_status, R.drawable.svg_ok);
+                                break;
+                            case "safe":
+                                remoteViews.setImageViewResource(R.id.push_notif_status, R.drawable.svg_safe);
+                                break;
+                            case "dangerous":
+                                remoteViews.setImageViewResource(R.id.push_notif_status, R.drawable.svg_dangerous);
+                                break;
+                            case "help":
+                                remoteViews.setImageViewResource(R.id.push_notif_status, R.drawable.svg_help);
+                                break;
+                            case "off":
+                                remoteViews.setImageViewResource(R.id.push_notif_status, R.drawable.svg_off);
+                                break;
+                        }
+
                         notif.setContent(remoteViews);
 
                         //make notification persistent
-                        notif.setOngoing(true);
+                        //notif.setOngoing(true);
 
                         //notif.setLargeIcon(BitmapFactory.decodeResource(getResources(), bot.getImage()));
 
