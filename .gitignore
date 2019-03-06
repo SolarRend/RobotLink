@@ -1,9 +1,9 @@
-*.iml
-.gradle
-/local.properties
-/.idea/workspace.xml
-/.idea/libraries
+/Robot_Link/*.iml
+/Robot_Link/.gradle
+/Robot_Link/local.properties
+/Robot_Link/.idea/workspace.xml
+/Robot_Link/.idea/libraries
 .DS_Store
-/build
-/captures
-.externalNativeBuild
+/Robot_Link/build
+/Robot_Link/captures
+/Robot_Link/.externalNativeBuild
